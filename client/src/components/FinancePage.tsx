@@ -11,9 +11,13 @@ import "./css/FinancePage.css";
 type FinanceSection = "dashboard" | "transactions" | "budget" | "goals" | "notifications";
 type GateState = "loading" | "setup" | "locked" | "unlocked";
 
-export default function FinancePage() {
+interface Props {
+  initialSection?: string;
+}
+
+export default function FinancePage({ initialSection }: Props) {
   const [gate, setGate] = useState<GateState>("loading");
-  const [section, setSection] = useState<FinanceSection>("dashboard");
+  const [section, setSection] = useState<FinanceSection>((initialSection as FinanceSection) || "dashboard");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
