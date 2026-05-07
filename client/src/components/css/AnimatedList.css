@@ -1,0 +1,18 @@
+.animated-list {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+}
+
+.animated-list-item {
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+  filter: blur(4px);
+  transition: opacity 0.35s ease, transform 0.35s ease, filter 0.35s ease;
+}
+
+.animated-list-item--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0px);
+}

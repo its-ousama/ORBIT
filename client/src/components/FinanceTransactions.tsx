@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getTransactions, createTransaction, deleteTransaction, getCategories, createRecurring } from "../financeAPI";
 import type { FinanceTransaction, FinanceCategory } from "../types";
-import "./FinanceTransactions.css";
+import "./css/FinanceTransactions.css";
 
 interface Props { currentMonth: string; }
 

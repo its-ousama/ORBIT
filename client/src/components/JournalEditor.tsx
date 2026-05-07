@@ -6,7 +6,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
 import type { Journal, JournalTheme } from "../types";
 import { saveJournalContent, updateJournalTheme, getJournal } from "../api";
-import "./JournalEditor.css";
+import "./css/JournalEditor.css";
 
 const FONTS = [
   { label: "Georgia", value: "Georgia, serif" },

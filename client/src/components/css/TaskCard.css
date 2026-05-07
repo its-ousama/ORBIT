@@ -1,0 +1,226 @@
+/* ── Card ───────────────────────────────────────────────────────────────────── */
+
+.task-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+
+  /* Staggered slide-in */
+  opacity: 0;
+  transform: translateY(6px);
+  animation: cardIn 0.28s ease forwards;
+  animation-delay: calc(var(--index, 0) * 50ms);
+}
+
+@keyframes cardIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  border-color: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+.task-card.scratched {
+  opacity: 0.5;
+  background: #fafafa;
+}
+
+.task-card.editing {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
+}
+
+/* Priority color bar on left */
+.task-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 12px 0 0 12px;
+  background: var(--priority-color, #e2e8f0);
+  transition: width 0.2s;
+}
+
+.task-card:hover::before {
+  width: 4px;
+}
+
+/* ── Scratch button ─────────────────────────────────────────────────────────── */
+
+.scratch-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.scratch-btn:hover {
+  border-color: var(--priority-color, #6366f1);
+  background: color-mix(in srgb, var(--priority-color, #6366f1) 8%, transparent);
+  transform: scale(1.1);
+}
+
+.scratch-btn-inner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.task-card:not(.scratched) .scratch-btn:hover .scratch-btn-inner {
+  background: var(--priority-color, #6366f1);
+  transform: scale(0.85);
+}
+
+.task-card.scratched .scratch-btn {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.scratch-check {
+  color: #22c55e;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* ── Task body ──────────────────────────────────────────────────────────────── */
+
+.task-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.task-title {
+  font-size: 0.92rem;
+  color: #1e293b;
+  font-weight: 500;
+  line-height: 1.4;
+  transition: color 0.2s;
+}
+
+.task-title.crossed {
+  text-decoration: line-through;
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+.priority-badge {
+  font-size: 0.68rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  transition: opacity 0.2s;
+}
+
+/* ── Actions ────────────────────────────────────────────────────────────────── */
+
+.task-actions {
+  display: flex;
+  gap: 0.2rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.task-card:hover .task-actions { opacity: 1; }
+
+.action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 7px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.action-btn:hover { background: #f1f5f9; color: #475569; }
+.action-btn.delete:hover { background: #fef2f2; color: #ef4444; }
+
+/* ── Edit mode ──────────────────────────────────────────────────────────────── */
+
+.edit-input {
+  flex: 1;
+  min-width: 150px;
+  border: 1.5px solid #6366f1;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  outline: none;
+  color: #1e293b;
+  background: #fafafa;
+  transition: box-shadow 0.15s;
+}
+
+.edit-input:focus {
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+
+.edit-priority {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+  color: #1e293b;
+  outline: none;
+  cursor: pointer;
+  background: #fafafa;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  border: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.save-btn:hover { opacity: 0.88; }
+
+.cancel-btn {
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cancel-btn:hover { background: #e2e8f0; }

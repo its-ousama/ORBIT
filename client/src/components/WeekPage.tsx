@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import axios from "axios";
-import "./WeekPage.css";
+import "./css/WeekPage.css";
 
 dayjs.extend(isoWeek);
 

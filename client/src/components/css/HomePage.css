@@ -1,0 +1,230 @@
+/* ── Home page ─────────────────────────────────────────────────────────────── */
+
+.home-page {
+  position: fixed;
+  inset: 0;
+  background: #020817;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5rem;
+  overflow: hidden;
+  z-index: 50;
+  animation: homeIn 0.4s ease forwards;
+}
+
+@keyframes homeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Background orbs ───────────────────────────────────────────────────────── */
+
+.home-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.home-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  animation: orbFloat 8s ease-in-out infinite;
+}
+
+.home-bg-orb-1 {
+  width: 500px; height: 500px;
+  background: #6366f1;
+  top: -100px; left: -100px;
+  animation-delay: 0s;
+}
+
+.home-bg-orb-2 {
+  width: 400px; height: 400px;
+  background: #3b82f6;
+  bottom: -80px; right: -80px;
+  animation-delay: -3s;
+}
+
+.home-bg-orb-3 {
+  width: 300px; height: 300px;
+  background: #10b981;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: -6s;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
+}
+
+/* ── Clock ─────────────────────────────────────────────────────────────────── */
+
+.home-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  animation: fadeSlideUp 0.5s ease 0.1s both;
+}
+
+.home-time {
+  font-size: 3.5rem;
+  font-weight: 200;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.home-date {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.4);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+/* ── Logo ──────────────────────────────────────────────────────────────────── */
+
+.home-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  animation: fadeSlideUp 0.5s ease 0.15s both;
+}
+
+.home-logo-badge {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+}
+
+.home-logo-main {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+  display: block;
+}
+
+.home-logo-sub {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.06em;
+  display: block;
+  margin-top: 0.1rem;
+}
+
+/* ── App grid ──────────────────────────────────────────────────────────────── */
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  animation: fadeSlideUp 0.5s ease 0.2s both;
+}
+
+/* ── App card ──────────────────────────────────────────────────────────────── */
+
+.home-app-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 16px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.home-app-card:hover {
+  transform: scale(1.08) translateY(-3px);
+}
+
+.home-app-card.clicked {
+  transform: scale(0.92);
+  transition: transform 0.15s ease;
+}
+
+.home-app-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: var(--app-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.3),
+    0 2px 8px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+  transition: box-shadow 0.2s;
+}
+
+.home-app-card:hover .home-app-icon-wrap {
+  box-shadow:
+    0 12px 32px rgba(0,0,0,0.4),
+    0 4px 12px var(--app-color, rgba(0,0,0,0.2)),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.home-app-icon {
+  font-size: 1.75rem;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+  line-height: 1;
+}
+
+/* Shine overlay */
+.home-app-shine {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+  border-radius: 18px 18px 0 0;
+  pointer-events: none;
+}
+
+.home-app-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+/* ── Bottom hint ───────────────────────────────────────────────────────────── */
+
+.home-hint {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 0.05em;
+  animation: fadeSlideUp 0.5s ease 0.3s both;
+}
+
+/* ── Shared animation ──────────────────────────────────────────────────────── */
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}

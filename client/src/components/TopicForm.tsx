@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { Topic, Concept } from "../types";
 import { createTopic, updateTopic } from "../api";
-import "./TopicForm.css";
+import "./css/TopicForm.css";
 
-const COLORS = ["#2563eb", "#dc2626", "#059669", "#7c3aed", "#d97706", "#0891b2", "#db2777", "#ea580c"];
+const COLORS = ["#2563eb","#dc2626","#059669","#7c3aed","#d97706","#0891b2","#db2777","#ea580c"];
 const DEFAULT_CATEGORIES = ["Monitoring Stack", "Data & Messaging", "Infrastructure", "DevOps"];
 
 interface Props {
@@ -22,7 +22,7 @@ export default function TopicForm({ topic, existingTopics, onSaved, onCancel }: 
   const [customCat, setCustomCat] = useState("");
   const [description, setDescription] = useState(topic?.description || "");
   const [analogy, setAnalogy] = useState(topic?.analogy || "");
-  const [concepts, setConcepts] = useState<Concept[]>(topic?.concepts || [{ term: "", def: "" }]);
+  const [concepts, setConcepts] = useState<Concept[]>(topic?.concepts?.length ? topic.concepts : [{ term: "", def: "" }]);
   const [saving, setSaving] = useState(false);
 
   const finalCategory = category === "__custom__" ? customCat : category;
@@ -42,9 +42,7 @@ export default function TopicForm({ topic, existingTopics, onSaved, onCancel }: 
       concepts: concepts.filter(c => c.term.trim()),
       connects: topic?.connects || [],
     };
-    const saved = topic
-      ? await updateTopic(topic.id, payload)
-      : await createTopic(payload);
+    const saved = topic ? await updateTopic(topic.id, payload) : await createTopic(payload);
     onSaved(saved);
     setSaving(false);
   };
@@ -59,85 +57,122 @@ export default function TopicForm({ topic, existingTopics, onSaved, onCancel }: 
       </div>
 
       <div className="tf-body">
-        <div className="tf-row">
-          <div className="tf-field">
-            <label>Name *</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Grafana" />
-          </div>
-          <div className="tf-field tf-field-sm">
-            <label>Icon</label>
-            <input value={icon} onChange={e => setIcon(e.target.value)} placeholder="📄" />
+        {/* Basic info */}
+        <div className="tf-section">
+          <div className="tf-section-header">Basic Info</div>
+          <div className="tf-section-body">
+            <div className="tf-row">
+              <div className="tf-field">
+                <label>Name *</label>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Grafana" />
+              </div>
+              <div className="tf-field tf-field-sm">
+                <label>Icon</label>
+                <input value={icon} onChange={e => setIcon(e.target.value)} placeholder="📄" />
+              </div>
+            </div>
+            <div className="tf-field">
+              <label>Short description</label>
+              <input value={abbr} onChange={e => setAbbr(e.target.value)} placeholder="e.g. Data Visualization Platform" />
+            </div>
           </div>
         </div>
 
-        <div className="tf-field">
-          <label>Short description / abbreviation</label>
-          <input value={abbr} onChange={e => setAbbr(e.target.value)} placeholder="e.g. Data Visualization Platform" />
+        {/* Category & color */}
+        <div className="tf-section">
+          <div className="tf-section-header">Category & Appearance</div>
+          <div className="tf-section-body">
+            <div className="tf-row">
+              <div className="tf-field">
+                <label>Category *</label>
+                <select value={category} onChange={e => setCategory(e.target.value)}>
+                  {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value="__custom__">+ New category...</option>
+                </select>
+                {category === "__custom__" && (
+                  <input
+                    className="tf-custom-cat"
+                    value={customCat}
+                    onChange={e => setCustomCat(e.target.value)}
+                    placeholder="Category name"
+                  />
+                )}
+              </div>
+              <div className="tf-field tf-field-md">
+                <label>Color</label>
+                <div className="tf-colors">
+                  {COLORS.map(c => (
+                    <div
+                      key={c}
+                      className={`tf-color-dot ${color === c ? "selected" : ""}`}
+                      style={{ background: c }}
+                      onClick={() => setColor(c)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="tf-row">
-          <div className="tf-field">
-            <label>Category *</label>
-            <select value={category} onChange={e => setCategory(e.target.value)}>
-              {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
-              <option value="__custom__">+ New category...</option>
-            </select>
-            {category === "__custom__" && (
-              <input
-                className="tf-custom-cat"
-                value={customCat}
-                onChange={e => setCustomCat(e.target.value)}
-                placeholder="Category name"
+        {/* Content */}
+        <div className="tf-section">
+          <div className="tf-section-header">Content</div>
+          <div className="tf-section-body">
+            <div className="tf-field">
+              <label>Description</label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={4}
+                placeholder="What is this? How is it used?"
               />
-            )}
+            </div>
+            <div className="tf-field">
+              <label>Analogy <span className="tf-optional">(optional)</span></label>
+              <textarea
+                value={analogy}
+                onChange={e => setAnalogy(e.target.value)}
+                rows={2}
+                placeholder="A simple analogy to remember this..."
+              />
+            </div>
           </div>
-          <div className="tf-field tf-field-sm">
-            <label>Color</label>
-            <div className="tf-colors">
-              {COLORS.map(c => (
-                <div
-                  key={c}
-                  className={`tf-color-dot ${color === c ? "selected" : ""}`}
-                  style={{ background: c }}
-                  onClick={() => setColor(c)}
-                />
+        </div>
+
+        {/* Key concepts */}
+        <div className="tf-section">
+          <div className="tf-section-header">Key Concepts</div>
+          <div className="tf-section-body">
+            <div className="tf-concepts-list">
+              {concepts.map((c, i) => (
+                <div key={i} className="tf-concept-row">
+                  <input
+                    placeholder="Term"
+                    value={c.term}
+                    onChange={e => updateConcept(i, "term", e.target.value)}
+                    className="tf-concept-term"
+                  />
+                  <input
+                    placeholder="Definition"
+                    value={c.def}
+                    onChange={e => updateConcept(i, "def", e.target.value)}
+                    className="tf-concept-def"
+                  />
+                  <button
+                    className="tf-remove-concept"
+                    onClick={() => setConcepts(prev => prev.filter((_, idx) => idx !== i))}
+                  >✕</button>
+                </div>
               ))}
+              <button
+                className="tf-add-concept"
+                onClick={() => setConcepts(prev => [...prev, { term: "", def: "" }])}
+              >
+                + Add concept
+              </button>
             </div>
           </div>
-        </div>
-
-        <div className="tf-field">
-          <label>Description</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="What is this? How is it used at SNCF?" />
-        </div>
-
-        <div className="tf-field">
-          <label>Analogy <span className="tf-optional">(optional)</span></label>
-          <textarea value={analogy} onChange={e => setAnalogy(e.target.value)} rows={2} placeholder="A simple analogy to remember this..." />
-        </div>
-
-        <div className="tf-field">
-          <label>Key Concepts</label>
-          {concepts.map((c, i) => (
-            <div key={i} className="tf-concept-row">
-              <input
-                placeholder="Term"
-                value={c.term}
-                onChange={e => updateConcept(i, "term", e.target.value)}
-                className="tf-concept-term"
-              />
-              <input
-                placeholder="Definition"
-                value={c.def}
-                onChange={e => updateConcept(i, "def", e.target.value)}
-                className="tf-concept-def"
-              />
-              <button className="tf-remove-concept" onClick={() => setConcepts(prev => prev.filter((_, idx) => idx !== i))}>✕</button>
-            </div>
-          ))}
-          <button className="tf-add-concept" onClick={() => setConcepts(prev => [...prev, { term: "", def: "" }])}>
-            + Add concept
-          </button>
         </div>
       </div>
 
@@ -145,6 +180,7 @@ export default function TopicForm({ topic, existingTopics, onSaved, onCancel }: 
         <button className="tf-save" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : topic ? "Save Changes" : "Create Topic"}
         </button>
+        <button className="tf-cancel-footer" onClick={onCancel}>Cancel</button>
       </div>
     </div>
   );

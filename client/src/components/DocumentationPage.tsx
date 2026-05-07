@@ -3,14 +3,7 @@ import type { Topic } from "../types";
 import { getTopics, deleteTopic } from "../api";
 import TopicView from "./TopicView";
 import TopicForm from "./TopicForm";
-import "./DocumentationPage.css";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  "Monitoring Stack": "#d97706",
-  "Data & Messaging": "#059669",
-  "Infrastructure": "#2563eb",
-  "DevOps": "#dc2626",
-};
+import "./css/DocumentationPage.css";
 
 export default function DocumentationPage() {
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -28,8 +21,10 @@ export default function DocumentationPage() {
   };
 
   const grouped = topics
-    .filter(t => t.name.toLowerCase().includes(search.toLowerCase()) ||
-                 t.category.toLowerCase().includes(search.toLowerCase()))
+    .filter(t =>
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.category.toLowerCase().includes(search.toLowerCase())
+    )
     .reduce((acc, t) => {
       if (!acc[t.category]) acc[t.category] = [];
       acc[t.category].push(t);
@@ -47,8 +42,9 @@ export default function DocumentationPage() {
   const handleSaved = (topic: Topic) => {
     setTopics(prev => {
       const exists = prev.find(t => t.id === topic.id);
-      const updated = exists ? prev.map(t => t.id === topic.id ? topic : t) : [...prev, topic];
-      return updated;
+      return exists
+        ? prev.map(t => t.id === topic.id ? topic : t)
+        : [...prev, topic];
     });
     setSelected(topic);
     setShowForm(false);
@@ -71,29 +67,34 @@ export default function DocumentationPage() {
       <aside className="doc-sidebar">
         <div className="doc-sidebar-top">
           <h3 className="doc-sidebar-title">Knowledge Base</h3>
-          <p className="doc-sidebar-sub">{topics.length} topics</p>
+          <p className="doc-sidebar-sub">{topics.length} topic{topics.length !== 1 ? "s" : ""}</p>
         </div>
-        <input
-          className="doc-search"
-          placeholder="Search topics..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+
+        <div className="doc-search-wrap">
+          <input
+            className="doc-search"
+            placeholder="Search topics..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
         <div className="doc-nav">
           {Object.entries(grouped).map(([cat, catTopics]) => (
-            <div key={cat}>
-              <div className="doc-cat-label" style={{ color: CATEGORY_COLORS[cat] || "#64748b" }}>
-                {cat}
+            <div key={cat} className="doc-cat-group">
+              <div className="doc-cat-label">
+                <span>{cat}</span>
+                <span className="doc-cat-count">{catTopics.length}</span>
               </div>
               {catTopics.map(t => (
                 <div
                   key={t.id}
                   className={`doc-nav-item ${selected?.id === t.id ? "active" : ""}`}
+                  style={{ "--topic-color": t.color } as React.CSSProperties}
                   onClick={() => setSelected(t)}
-                  style={selected?.id === t.id ? { borderLeftColor: t.color, color: t.color } : {}}
                 >
                   <span className="doc-nav-icon">{t.icon}</span>
-                  {t.name}
+                  <span className="doc-nav-name">{t.name}</span>
                 </div>
               ))}
             </div>
@@ -102,7 +103,10 @@ export default function DocumentationPage() {
             <p className="doc-empty-search">No topics found.</p>
           )}
         </div>
-        <button className="doc-add-btn" onClick={() => setShowForm(true)}>+ New Topic</button>
+
+        <button className="doc-add-btn" onClick={() => setShowForm(true)}>
+          + New Topic
+        </button>
       </aside>
 
       <div className="doc-main">
@@ -118,7 +122,7 @@ export default function DocumentationPage() {
           <div className="doc-welcome">
             <span className="doc-welcome-icon">📚</span>
             <h3>Select a topic to read</h3>
-            <p>Or add a new one using the button in the sidebar.</p>
+            <p>Or create a new one using the button below.</p>
           </div>
         )}
       </div>

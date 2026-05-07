@@ -1,3 +1,48 @@
+/* ── Base reset ────────────────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+/* ── Fullscreen app wrapper (no sidebar) ───────────────────────────────────── */
+
+.app-fullscreen {
+  width: 100vw;
+  min-height: 100vh;
+  background: #f8fafc;
+  padding-top: 1rem;
+  animation: pageFadeIn 0.22s ease forwards;
+}
+
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Page content area — centered with space for home button ───────────────── */
+
+.app-fullscreen > *:not(.home-btn) {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 3rem 3rem 3rem;
+}
+
+/* Pages that go edge to edge (Finance, Documentation, Boards, Journal) */
+.app-fullscreen > .finance-layout,
+.app-fullscreen > .doc-layout,
+.app-fullscreen > .finance-gate {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+}
+
+/* ── Legacy layout (kept for safety) ──────────────────────────────────────── */
+
 .layout {
   display: flex;
   min-height: 100vh;
@@ -9,6 +54,6 @@
   overflow-y: auto;
 }
 
-.layout.sidebar-hidden .sidebar {
+.sidebar-hidden .sidebar {
   display: none;
 }

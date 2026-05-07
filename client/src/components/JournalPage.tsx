@@ -10,7 +10,7 @@ import {
 } from "../api";
 import type { Journal } from "../types";
 import JournalEditor from "./JournalEditor";
-import "./JournalPage.css";
+import "./css/JournalPage.css";
 
 type GateState = "loading" | "setup" | "locked" | "unlocked";
 

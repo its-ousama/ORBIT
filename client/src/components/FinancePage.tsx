@@ -5,22 +5,18 @@ import FinanceTransactions from "./FinanceTransactions";
 import FinanceBudget from "./FinanceBudget";
 import FinanceGoals from "./FinanceGoals";
 import FinanceNotifications from "./FinanceNotifications";
-import "./FinancePage.css";
+import BorderBeam from "./BorderBeam";
+import "./css/FinancePage.css";
 
 type FinanceSection = "dashboard" | "transactions" | "budget" | "goals" | "notifications";
 type GateState = "loading" | "setup" | "locked" | "unlocked";
 
-interface Props {
-  onHideSidebar: (hide: boolean) => void;
-}
-
-export default function FinancePage({ onHideSidebar }: Props) {
+export default function FinancePage() {
   const [gate, setGate] = useState<GateState>("loading");
   const [section, setSection] = useState<FinanceSection>("dashboard");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
-  const [mainSidebarHidden, setMainSidebarHidden] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
@@ -28,83 +24,54 @@ export default function FinancePage({ onHideSidebar }: Props) {
   });
 
   useEffect(() => {
-    getFinanceStatus().then(({ configured }) => {
-      setGate(configured ? "locked" : "setup");
-    });
+    getFinanceStatus().then(({ configured }) => setGate(configured ? "locked" : "setup"));
   }, []);
 
   useEffect(() => {
-    if (gate === "unlocked") {
-      onHideSidebar(true);
-      fetchPendingCount();
-    }
-    return () => onHideSidebar(false);
+    if (gate === "unlocked") fetchPendingCount();
   }, [gate, currentMonth]);
 
   const fetchPendingCount = async () => {
     try {
       const data = await getPendingRecurring(currentMonth);
       setPendingCount(data.length);
-    } catch (e) {
-      setPendingCount(0);
-    }
-  };
-
-  const toggleMainSidebar = () => {
-    const next = !mainSidebarHidden;
-    setMainSidebarHidden(next);
-    onHideSidebar(next);
+    } catch { setPendingCount(0); }
   };
 
   const handlePinInput = useCallback((digit: string) => {
     setPin(p => p.length < 6 ? p + digit : p);
   }, []);
 
-  const handlePinDelete = useCallback(() => {
-    setPin(p => p.slice(0, -1));
-  }, []);
+  const handlePinDelete = useCallback(() => setPin(p => p.slice(0, -1)), []);
 
   const handleSetup = async (currentPin: string) => {
     if (currentPin.length < 4) { setError("At least 4 digits"); return; }
     await setupFinancePin(currentPin);
-    setPin("");
-    setGate("unlocked");
+    setPin(""); setGate("unlocked");
   };
 
   const handleVerify = async (currentPin: string) => {
     const res = await verifyFinancePin(currentPin);
-    if (res.success) {
-      setPin("");
-      setGate("unlocked");
-    } else {
-      setError("Wrong PIN");
-      setShake(true);
+    if (res.success) { setPin(""); setGate("unlocked"); }
+    else {
+      setError("Wrong PIN"); setShake(true);
       setTimeout(() => { setShake(false); setError(""); }, 600);
       setPin("");
     }
   };
 
-  // Keyboard support for gate
   useEffect(() => {
     if (gate !== "setup" && gate !== "locked") return;
-
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key >= "0" && e.key <= "9") {
-        handlePinInput(e.key);
-      } else if (e.key === "Backspace") {
-        handlePinDelete();
-      }
+      if (e.key >= "0" && e.key <= "9") handlePinInput(e.key);
+      else if (e.key === "Backspace") handlePinDelete();
     };
-
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [gate, handlePinInput, handlePinDelete]);
 
-  // Auto-verify at 4 digits when locked
   useEffect(() => {
-    if (gate === "locked" && pin.length === 4) {
-      handleVerify(pin);
-    }
+    if (gate === "locked" && pin.length === 4) handleVerify(pin);
   }, [pin, gate]);
 
   const monthLabel = () => {
@@ -112,20 +79,17 @@ export default function FinancePage({ onHideSidebar }: Props) {
     return new Date(parseInt(y), parseInt(m) - 1).toLocaleString("en-GB", { month: "long", year: "numeric" });
   };
 
-  // ── Gate ──────────────────────────────────────────────────────────────────
-
   if (gate === "loading") return <div className="finance-gate"><div className="finance-gate-dots">···</div></div>;
 
   if (gate === "setup" || gate === "locked") {
     const isSetup = gate === "setup";
     return (
       <div className="finance-gate">
-        <div className={`finance-gate-box ${shake ? "shake" : ""}`}>
+        <div className={`finance-gate-box ${shake ? "shake" : ""}`} style={{ position: "relative", overflow: "hidden" }}>
+          <BorderBeam duration={4} colorFrom="#6366f1" colorTo="#06b6d4" />
           <div className="finance-gate-icon">💳</div>
           <h2>{isSetup ? "Set up Finance PIN" : "Finance"}</h2>
-          <p className="finance-gate-sub">
-            {isSetup ? "Choose a 4–6 digit PIN" : "Enter your PIN"}
-          </p>
+          <p className="finance-gate-sub">{isSetup ? "Choose a 4–6 digit PIN" : "Enter your PIN"}</p>
           <div className="finance-pin-dots">
             {[...Array(isSetup ? Math.max(4, pin.length) : 4)].map((_, i) => (
               <div key={i} className={`finance-pin-dot ${i < pin.length ? "filled" : ""}`} />
@@ -148,8 +112,6 @@ export default function FinancePage({ onHideSidebar }: Props) {
     );
   }
 
-  // ── Unlocked ──────────────────────────────────────────────────────────────
-
   const navItems: { key: FinanceSection; icon: string; label: string }[] = [
     { key: "dashboard", icon: "📊", label: "Dashboard" },
     { key: "transactions", icon: "💸", label: "Transactions" },
@@ -162,9 +124,6 @@ export default function FinancePage({ onHideSidebar }: Props) {
     <div className="finance-layout">
       <aside className="finance-sidebar">
         <div className="finance-sidebar-header">
-          <button className="finance-hamburger" onClick={toggleMainSidebar} title={mainSidebarHidden ? "Show main menu" : "Hide main menu"}>
-            ☰
-          </button>
           <span className="finance-sidebar-title">Finance</span>
         </div>
         <div className="finance-month-nav">
@@ -182,11 +141,7 @@ export default function FinancePage({ onHideSidebar }: Props) {
         </div>
         <nav className="finance-nav">
           {navItems.map(item => (
-            <button
-              key={item.key}
-              className={`finance-nav-item ${section === item.key ? "active" : ""}`}
-              onClick={() => setSection(item.key)}
-            >
+            <button key={item.key} className={`finance-nav-item ${section === item.key ? "active" : ""}`} onClick={() => setSection(item.key)}>
               <span>{item.icon}</span>
               {item.label}
               {item.key === "notifications" && pendingCount > 0 && (
@@ -196,18 +151,12 @@ export default function FinancePage({ onHideSidebar }: Props) {
           ))}
         </nav>
       </aside>
-
       <div className="finance-main">
         {section === "dashboard" && <FinanceDashboard currentMonth={currentMonth} />}
         {section === "transactions" && <FinanceTransactions currentMonth={currentMonth} />}
         {section === "budget" && <FinanceBudget currentMonth={currentMonth} />}
         {section === "goals" && <FinanceGoals />}
-        {section === "notifications" && (
-          <FinanceNotifications
-            currentMonth={currentMonth}
-            onConfirmed={fetchPendingCount}
-          />
-        )}
+        {section === "notifications" && <FinanceNotifications currentMonth={currentMonth} onConfirmed={fetchPendingCount} />}
       </div>
     </div>
   );

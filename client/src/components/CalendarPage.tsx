@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import axios from "axios";
 import type { Task, Priority } from "../types";
-import "./CalendarPage.css";
+import "./css/CalendarPage.css";
 
 const PRIORITY_COLOR: Record<Priority, string> = {
   high: "#ef4444",

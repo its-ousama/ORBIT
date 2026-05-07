@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Task, Priority, Status } from "../types";
 import axios from "axios";
-import "./TaskCard.css";
+import "./css/TaskCard.css";
 
 const PRIORITY_COLORS: Record<Priority, string> = {
   high: "#ef4444",
@@ -15,14 +15,21 @@ const PRIORITY_BG: Record<Priority, string> = {
   low: "#f0fdf4",
 };
 
+const PRIORITY_TEXT: Record<Priority, string> = {
+  high: "#dc2626",
+  medium: "#d97706",
+  low: "#16a34a",
+};
+
 interface Props {
   task: Task;
+  index?: number;
   onStatus: (id: number, current: Status) => void;
   onDelete: (id: number) => void;
   onEdit: (updated: Task) => void;
 }
 
-export default function TaskCard({ task, onStatus, onDelete, onEdit }: Props) {
+export default function TaskCard({ task, index = 0, onStatus, onDelete, onEdit }: Props) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editPriority, setEditPriority] = useState<Priority>(task.priority);
@@ -43,15 +50,23 @@ export default function TaskCard({ task, onStatus, onDelete, onEdit }: Props) {
     setEditing(false);
   };
 
+  const color = PRIORITY_COLORS[task.priority];
+
   if (editing) {
     return (
-      <div className="task-card editing">
+      <div
+        className="task-card editing"
+        style={{ "--priority-color": PRIORITY_COLORS[editPriority], "--index": index } as React.CSSProperties}
+      >
         <input
           ref={inputRef}
           className="edit-input"
           value={editTitle}
           onChange={e => setEditTitle(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditing(false); }}
+          onKeyDown={e => {
+            if (e.key === "Enter") saveEdit();
+            if (e.key === "Escape") setEditing(false);
+          }}
         />
         <select
           className="edit-priority"
@@ -71,31 +86,50 @@ export default function TaskCard({ task, onStatus, onDelete, onEdit }: Props) {
   return (
     <div
       className={`task-card ${task.status === "scratched" ? "scratched" : ""}`}
-      style={{ borderLeft: `3px solid ${PRIORITY_COLORS[task.priority]}` }}
+      style={{ "--priority-color": color, "--index": index } as React.CSSProperties}
     >
+      {/* Scratch button */}
       <button
         className="scratch-btn"
         onClick={() => onStatus(task.id, task.status)}
-        title={task.status === "pending" ? "Mark as scratched" : "Undo"}
+        title={task.status === "pending" ? "Mark done" : "Undo"}
       >
-        {task.status === "scratched" ? "✓" : "○"}
+        {task.status === "scratched" ? (
+          <span className="scratch-check">✓</span>
+        ) : (
+          <span className="scratch-btn-inner" />
+        )}
       </button>
 
+      {/* Content */}
       <div className="task-body">
         <span className={`task-title ${task.status === "scratched" ? "crossed" : ""}`}>
           {task.title}
         </span>
         <span
           className="priority-badge"
-          style={{ background: PRIORITY_BG[task.priority], color: PRIORITY_COLORS[task.priority] }}
+          style={{
+            background: PRIORITY_BG[task.priority],
+            color: PRIORITY_TEXT[task.priority],
+            borderColor: color + "33",
+          }}
         >
           {task.priority}
         </span>
       </div>
 
+      {/* Actions */}
       <div className="task-actions">
-        <button className="action-btn" onClick={() => setEditing(true)} title="Edit">✏️</button>
-        <button className="action-btn delete" onClick={() => onDelete(task.id)} title="Delete">🗑</button>
+        <button className="action-btn" onClick={() => setEditing(true)} title="Edit">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button className="action-btn delete" onClick={() => onDelete(task.id)} title="Delete">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 3.5h10M5 3.5V2h4v1.5M5.5 6v4M8.5 6v4M3 3.5l.7 8h6.6l.7-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
       </div>
     </div>
   );

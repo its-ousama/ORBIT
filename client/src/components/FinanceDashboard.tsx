@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Legend, LineChart, Line, CartesianGrid
+  PieChart, Pie, Legend, CartesianGrid
 } from "recharts";
 import { getMonthlySummary, getCategorySpending, getTransactions } from "../financeAPI";
 import type { FinanceMonthlySummary, FinanceCategorySpending, FinanceTransaction } from "../types";
-import "./FinanceDashboard.css";
+import NumberTicker from "./NumberTicker";
+import BlurFade from "./BlurFade";
+import "./css/FinanceDashboard.css";
 
 interface Props { currentMonth: string; }
 
@@ -13,15 +15,23 @@ export default function FinanceDashboard({ currentMonth }: Props) {
   const [summary, setSummary] = useState<FinanceMonthlySummary | null>(null);
   const [spending, setSpending] = useState<FinanceCategorySpending[]>([]);
   const [recentTx, setRecentTx] = useState<FinanceTransaction[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    getMonthlySummary(currentMonth).then(setSummary);
-    getCategorySpending(currentMonth).then(setSpending);
-    getTransactions(currentMonth).then(data => setRecentTx(data.slice(0, 5)));
+    setLoaded(false);
+    Promise.all([
+      getMonthlySummary(currentMonth),
+      getCategorySpending(currentMonth),
+      getTransactions(currentMonth),
+    ]).then(([s, sp, tx]) => {
+      setSummary(s);
+      setSpending(sp);
+      setRecentTx(tx.slice(0, 5));
+      // Small delay so blur animation is visible
+      setTimeout(() => setLoaded(true), 50);
+    });
   }, [currentMonth]);
 
-  const fmt = (n: number) => `€${Number(n).toFixed(2)}`;
-  const totalBudget = spending.reduce((a, c) => a + Number(c.monthly_budget), 0);
   const overBudgetCount = spending.filter(c => Number(c.spent) > Number(c.monthly_budget) && Number(c.monthly_budget) > 0).length;
 
   const pieData = spending
@@ -41,39 +51,52 @@ export default function FinanceDashboard({ currentMonth }: Props) {
   return (
     <div className="finance-dashboard">
       {/* Summary strip */}
-      <div className="finance-summary-strip">
-        <div className="finance-stat-card">
-          <span className="finance-stat-label">Carried In</span>
-          <span className={`finance-stat-value ${summary && summary.opening_balance < 0 ? "negative" : "positive"}`}>
-            {summary ? fmt(summary.opening_balance) : "—"}
-          </span>
-        </div>
-        <div className="finance-stat-card">
-          <span className="finance-stat-label">Income</span>
-          <span className="finance-stat-value positive">{summary ? fmt(summary.total_income) : "—"}</span>
-        </div>
-        <div className="finance-stat-card">
-          <span className="finance-stat-label">Spent</span>
-          <span className="finance-stat-value negative">{summary ? fmt(summary.total_expenses) : "—"}</span>
-        </div>
-        <div className="finance-stat-card highlight">
-          <span className="finance-stat-label">Balance</span>
-          <span className={`finance-stat-value ${summary && summary.closing_balance < 0 ? "negative" : "positive"}`}>
-            {summary ? fmt(summary.closing_balance) : "—"}
-          </span>
-        </div>
-        {overBudgetCount > 0 && (
-          <div className="finance-stat-card warning">
-            <span className="finance-stat-label">Over Budget</span>
-            <span className="finance-stat-value">{overBudgetCount} categor{overBudgetCount > 1 ? "ies" : "y"}</span>
+      <BlurFade inView delay={0} duration={700}>
+        <div className="finance-summary-strip">
+          <div className="finance-stat-card">
+            <span className="finance-stat-label">Carried In</span>
+            <span className={`finance-stat-value ${summary && summary.opening_balance < 0 ? "negative" : "positive"}`}>
+              {loaded && summary ? (
+                <NumberTicker value={Number(summary.opening_balance)} prefix="€" decimals={2} duration={1800} />
+              ) : "€0.00"}
+            </span>
           </div>
-        )}
-      </div>
+          <div className="finance-stat-card">
+            <span className="finance-stat-label">Income</span>
+            <span className="finance-stat-value positive">
+              {loaded && summary ? (
+                <NumberTicker value={Number(summary.total_income)} prefix="€" decimals={2} duration={1800} />
+              ) : "€0.00"}
+            </span>
+          </div>
+          <div className="finance-stat-card">
+            <span className="finance-stat-label">Spent</span>
+            <span className="finance-stat-value negative">
+              {loaded && summary ? (
+                <NumberTicker value={Number(summary.total_expenses)} prefix="€" decimals={2} duration={1800} />
+              ) : "€0.00"}
+            </span>
+          </div>
+          <div className="finance-stat-card highlight">
+            <span className="finance-stat-label">Balance</span>
+            <span className={`finance-stat-value ${summary && summary.closing_balance < 0 ? "negative" : "positive"}`}>
+              {loaded && summary ? (
+                <NumberTicker value={Number(summary.closing_balance)} prefix="€" decimals={2} duration={2200} />
+              ) : "€0.00"}
+            </span>
+          </div>
+          {overBudgetCount > 0 && (
+            <div className="finance-stat-card warning">
+              <span className="finance-stat-label">Over Budget</span>
+              <span className="finance-stat-value">{overBudgetCount} categor{overBudgetCount > 1 ? "ies" : "y"}</span>
+            </div>
+          )}
+        </div>
+      </BlurFade>
 
       <div className="finance-charts-grid">
-        {/* Bar chart — spent vs budget */}
         {barData.length > 0 && (
-          <div className="finance-chart-card wide">
+          <BlurFade inView delay={200} duration={700} className="finance-chart-card wide">
             <h3>Spent vs Budget</h3>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={barData} barGap={4}>
@@ -89,24 +112,15 @@ export default function FinanceDashboard({ currentMonth }: Props) {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </BlurFade>
         )}
 
-        {/* Donut chart */}
         {pieData.length > 0 && (
-          <div className="finance-chart-card">
+          <BlurFade inView delay={350} duration={700} className="finance-chart-card">
             <h3>Spending Breakdown</h3>
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value">
                   {pieData.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
                   ))}
@@ -115,13 +129,12 @@ export default function FinanceDashboard({ currentMonth }: Props) {
                 <Legend iconType="circle" iconSize={10} />
               </PieChart>
             </ResponsiveContainer>
-          </div>
+          </BlurFade>
         )}
       </div>
 
-      {/* Recent transactions */}
       {recentTx.length > 0 && (
-        <div className="finance-chart-card">
+        <BlurFade inView delay={500} duration={700} className="finance-chart-card">
           <h3>Recent Transactions</h3>
           <div className="finance-recent-list">
             {recentTx.map(tx => (
@@ -132,12 +145,12 @@ export default function FinanceDashboard({ currentMonth }: Props) {
                   <span className="finance-recent-date">{tx.date}</span>
                 </div>
                 <span className={`finance-recent-amount ${tx.type === "income" ? "positive" : "negative"}`}>
-                  {tx.type === "income" ? "+" : "-"}{fmt(tx.amount)}
+                  {tx.type === "income" ? "+" : "-"}€{Number(tx.amount).toFixed(2)}
                 </span>
               </div>
             ))}
           </div>
-        </div>
+        </BlurFade>
       )}
 
       {spending.length === 0 && !summary?.total_income && (

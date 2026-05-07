@@ -4,7 +4,7 @@ import {
   getCategorySpending, getGoals, getMonthlySummary, getTransactions
 } from "../financeAPI";
 import type { FinanceRecurring, FinanceCategorySpending, FinanceGoal, FinanceMonthlySummary } from "../types";
-import "./FinanceNotifications.css";
+import "./css/FinanceNotifications.css";
 
 interface Props {
   currentMonth: string;

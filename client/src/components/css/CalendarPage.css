@@ -1,4 +1,7 @@
-.calendar-page { max-width: 860px; }
+.calendar-page {
+  max-width: 860px;
+  padding: 2rem 2.5rem;
+}
 
 .cal-header {
   display: flex;

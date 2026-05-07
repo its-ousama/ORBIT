@@ -1,0 +1,32 @@
+.border-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.border-beam::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 40%,
+    var(--beam-color-from, #6366f1) 60%,
+    var(--beam-color-to, #06b6d4) 70%,
+    transparent 80%
+  );
+  animation: beamSpin var(--beam-duration, 3s) linear infinite;
+  mask: linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  padding: 1.5px;
+}
+
+@keyframes beamSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

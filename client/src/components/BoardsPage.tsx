@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
-import "./BoardsPage.css";
+import "./css/BoardsPage.css";
 
 const API = "http://localhost:3001/api/boards";
 

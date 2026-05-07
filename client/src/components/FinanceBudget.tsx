@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCategories, createCategory, updateCategory, deleteCategory, getCategorySpending, getRecurring, deleteRecurring } from "../financeAPI";
 import type { FinanceCategorySpending, FinanceRecurring } from "../types";
-import "./FinanceBudget.css";
+import "./css/FinanceBudget.css";
 
 const PRESET_COLORS = ["#6366f1","#ec4899","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ef4444","#14b8a6"];
 const PRESET_ICONS = ["🏠","🍔","🚗","💊","🎮","✈️","👕","📱","💡","🎓","💰","🎁","🐾","🏋️"];
