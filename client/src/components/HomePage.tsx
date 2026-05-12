@@ -33,9 +33,10 @@ const apps: AppCard[] = [
 interface Props {
   onNavigate: (page: Page) => void;
   notifCount?: number;
+  onLogout?: () => void;
 }
 
-export default function HomePage({ onNavigate, notifCount = 0 }: Props) {
+export default function HomePage({ onNavigate, notifCount = 0, onLogout }: Props) {
   const [clicked, setClicked] = useState<Page | null>(null);
 
   const handleClick = (page: Page) => {
@@ -109,6 +110,12 @@ export default function HomePage({ onNavigate, notifCount = 0 }: Props) {
       </div>
 
       <div className="home-hint">Everything revolves around you</div>
+
+      {onLogout && (
+        <button className="home-signout" onClick={onLogout} title="Sign out">
+          ⏻
+        </button>
+      )}
     </div>
   );
 }

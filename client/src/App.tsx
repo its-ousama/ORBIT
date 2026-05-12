@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
-import axios from "axios";
+import http from "./http";
 import TasksPage from "./components/TasksPage";
 import CalendarPage from "./components/CalendarPage";
 import DocumentationPage from "./components/DocumentationPage";
@@ -8,15 +8,27 @@ import BoardsPage from "./components/BoardsPage";
 import WeekPage from "./components/WeekPage";
 import JournalPage from "./components/JournalPage";
 import FinancePage from "./components/FinancePage";
-import HomePage from "./components/HomePage";
+import GalaxyHome from "./components/GalaxyHome";
 import HomeButton from "./components/HomeButton";
 import NotificationsPage from "./components/NotificationsPage";
+import LoginPage from "./components/LoginPage";
 import { getPendingRecurring, getCategorySpending, getTransactions } from "./financeAPI";
 import "./App.css";
 
 export type Page = "home" | "tasks" | "calendar" | "documentation" | "boards" | "week" | "journal" | "finance" | "notifications";
 
+interface AuthUser { id: number; email: string; username: string; }
+
+function getStoredUser(): AuthUser | null {
+  try { return JSON.parse(localStorage.getItem("orbit_user") || "null"); } catch { return null; }
+}
+
 export default function App() {
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const token = localStorage.getItem("orbit_token");
+    return token ? getStoredUser() : null;
+  });
+
   const [selectedDate, setSelectedDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [page, setPage] = useState<Page>("home");
   const [notifCount, setNotifCount] = useState(0);
@@ -25,10 +37,27 @@ export default function App() {
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const today = dayjs().format("YYYY-MM-DD");
 
-  // Calculate badge count for home screen
   useEffect(() => {
-    countNotifications();
+    const handler = () => setUser(null);
+    window.addEventListener("orbit_logout", handler);
+    return () => window.removeEventListener("orbit_logout", handler);
   }, []);
+
+  useEffect(() => {
+    if (user) countNotifications();
+  }, [user]);
+
+  const handleLogin = (u: AuthUser) => {
+    setUser(u);
+    setPage("home");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("orbit_token");
+    localStorage.removeItem("orbit_refresh");
+    localStorage.removeItem("orbit_user");
+    setUser(null);
+  };
 
   const countNotifications = async () => {
     const dismissed: string[] = JSON.parse(localStorage.getItem("gp_dismissed_notifs") || "[]");
@@ -40,8 +69,8 @@ export default function App() {
         getCategorySpending(currentMonth),
         (await import("./financeAPI")).getGoals(),
         getTransactions(currentMonth),
-        axios.get("http://localhost:3001/api/tasks"),
-        axios.get("http://localhost:3001/api/schedule", { params: { start: today, end: today } }),
+        http.get("/tasks"),
+        http.get("/schedule", { params: { start: today, end: today } }),
       ]);
 
       const ids: string[] = [];
@@ -85,7 +114,6 @@ export default function App() {
     setPage("home");
   };
 
-  // Handle navigation from notifications
   const handleNotifNavigate = (app: string, extra?: any) => {
     countNotifications();
     if (app === "finance") {
@@ -101,8 +129,12 @@ export default function App() {
     }
   };
 
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   if (page === "home") {
-    return <HomePage onNavigate={setPage} notifCount={notifCount} />;
+    return <GalaxyHome onNavigate={setPage} notifCount={notifCount} onLogout={handleLogout} />;
   }
 
   return (

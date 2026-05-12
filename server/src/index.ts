@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 import taskRoutes from "./routes/tasks";
 import topicRoutes from "./routes/topics";
 import pool from "./db";
@@ -8,6 +9,8 @@ import boardRoutes from "./routes/boards";
 import scheduleRoutes from "./routes/schedule";
 import journalRoutes from "./routes/journals";
 import financeRoutes from "./routes/finance";
+import authRoutes from "./routes/auth";
+import { requireAuth } from "./middleware/auth";
 
 dotenv.config();
 
@@ -15,16 +18,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/tasks", taskRoutes);
-app.use("/api/topics", topicRoutes);
-app.use("/api/boards", boardRoutes);
-app.use("/api/schedule", scheduleRoutes);
-app.use("/api/journals", journalRoutes);
-app.use("/api/finance", financeRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/tasks", requireAuth, taskRoutes);
+app.use("/api/topics", requireAuth, topicRoutes);
+app.use("/api/boards", requireAuth, boardRoutes);
+app.use("/api/schedule", requireAuth, scheduleRoutes);
+app.use("/api/journals", requireAuth, journalRoutes);
+app.use("/api/finance", requireAuth, financeRoutes);
 
 const PORT = process.env.PORT || 3001;
 
 const initDb = async () => {
+  // ── Users ────────────────────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      username TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tasks (
       id SERIAL PRIMARY KEY,
@@ -166,6 +181,46 @@ const initDb = async () => {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+
+  // ── Add user_id to all data tables (safe no-op if column already exists) ────
+  const dataTables = [
+    "tasks", "boards", "schedule", "topics", "journals", "journal_config",
+    "finance_config", "finance_categories", "finance_transactions",
+    "finance_recurring", "finance_goals", "finance_monthly_summary",
+  ];
+  for (const table of dataTables) {
+    await pool.query(`
+      ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    `);
+  }
+
+  // ── Fix finance_monthly_summary unique constraint to be per (month, user_id) ─
+  await pool.query(`ALTER TABLE finance_monthly_summary DROP CONSTRAINT IF EXISTS finance_monthly_summary_month_key`);
+  await pool.query(`
+    DO $body$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fms_month_user_unique') THEN
+        ALTER TABLE finance_monthly_summary ADD CONSTRAINT fms_month_user_unique UNIQUE (month, user_id);
+      END IF;
+    END $body$
+  `);
+
+  // ── Migrate existing data to default user ────────────────────────────────────
+  const { rows: existingUsers } = await pool.query(`SELECT id FROM users LIMIT 1`);
+  if (existingUsers.length === 0) {
+    const email = process.env.DEFAULT_USER_EMAIL!;
+    const username = process.env.DEFAULT_USER_NAME!;
+    const passwordHash = await bcrypt.hash(process.env.DEFAULT_USER_PASSWORD!, 10);
+    const { rows } = await pool.query(
+      `INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING id`,
+      [email, username, passwordHash]
+    );
+    const userId = rows[0].id;
+    for (const table of dataTables) {
+      await pool.query(`UPDATE ${table} SET user_id = $1 WHERE user_id IS NULL`, [userId]);
+    }
+    console.log(`Default user created: ${email} (id=${userId}), all existing data migrated.`);
+  }
 
   console.log("Database ready");
 };

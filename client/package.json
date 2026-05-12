@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.1",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "@react-three/postprocessing": "^3.0.4",
     "@tiptap/extension-placeholder": "^3.22.4",
     "@tiptap/extension-text-align": "^3.22.4",
     "@tiptap/extension-underline": "^3.22.4",
@@ -19,10 +22,12 @@
     "@tiptap/starter-kit": "^3.22.4",
     "axios": "^1.15.1",
     "dayjs": "^1.11.20",
+    "jwt-decode": "^4.0.0",
     "react": "^19.2.5",
     "react-calendar": "^6.0.1",
     "react-dom": "^19.2.5",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
