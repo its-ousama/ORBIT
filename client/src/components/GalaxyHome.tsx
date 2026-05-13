@@ -1,209 +1,259 @@
-import { useRef, useState, Suspense } from "react";
-import { Canvas, useFrame, useThree, useLoader } from "@react-three/fiber";
+import { useRef, useState, useEffect, Suspense } from "react";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Stars, Html } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import type { Page } from "../App";
 
-// ─── types ───────────────────────────────────────────────────────────────────
+// ─── types ─────────────────────────────────────────────────────────────────
 
 type AppDef = {
-  page: Page; label: string; color: string; emissive: string;
-  size: number; orbitRadius: number; speed: number; tilt: number;
-  ring: boolean; texturePath: string;
+  page: Page;
+  label: string;
+  subLabel: string;
+  color: string;
+  emissive: string;
+  size: number;
+  orbitRadius: number;
+  angle: number;
+  ring: boolean;
+  texturePath: string;
 };
 
-type BgDef = {
-  id: string; texturePath: string; cloudPath?: string;
-  position: [number, number, number]; size: number;
-  rotSpeed: number; axialTilt: number;
-  hasRing: boolean; ringColor?: string; fallbackColor: string;
-};
-
-type MeshEvents = {
-  onPointerEnter: (e: any) => void;
-  onPointerLeave: (e: any) => void;
-  onClick: (e: any) => void;
-};
-
-// ─── data ─────────────────────────────────────────────────────────────────────
+// ─── data ──────────────────────────────────────────────────────────────────
 
 const APPS: AppDef[] = [
-  { page: "tasks",         label: "Tasks",         color: "#a78bfa", emissive: "#7c3aed", size: 0.55, orbitRadius: 3.0,  speed: 0.50, tilt: 0.00,  ring: false, texturePath: "/textures/2k_mercury.jpg"       },
-  { page: "week",          label: "This Week",     color: "#93c5fd", emissive: "#2563eb", size: 0.46, orbitRadius: 4.5,  speed: 0.38, tilt: 0.06,  ring: false, texturePath: "/textures/2k_moon.jpg"          },
-  { page: "calendar",      label: "Calendar",      color: "#6ee7b7", emissive: "#059669", size: 0.64, orbitRadius: 6.0,  speed: 0.28, tilt: -0.05, ring: false, texturePath: "/textures/2k_earth_daymap.jpg"  },
-  { page: "documentation", label: "Knowledge",     color: "#fcd34d", emissive: "#d97706", size: 0.54, orbitRadius: 7.6,  speed: 0.22, tilt: 0.08,  ring: false, texturePath: "/textures/2k_jupiter.jpg"       },
-  { page: "boards",        label: "Boards",        color: "#f9a8d4", emissive: "#db2777", size: 0.60, orbitRadius: 9.2,  speed: 0.17, tilt: -0.06, ring: false, texturePath: "/textures/2k_venus_surface.jpg" },
-  { page: "journal",       label: "Settings",      color: "#cbd5e1", emissive: "#475569", size: 0.44, orbitRadius: 10.7, speed: 0.13, tilt: 0.04,  ring: false, texturePath: "/textures/2k_mars.jpg"          },
-  { page: "finance",       label: "Finance",       color: "#86efac", emissive: "#16a34a", size: 0.64, orbitRadius: 12.2, speed: 0.10, tilt: -0.03, ring: true,  texturePath: "/textures/2k_saturn.jpg"        },
-  { page: "notifications", label: "Notifications", color: "#fdba74", emissive: "#ea580c", size: 0.52, orbitRadius: 13.6, speed: 0.08, tilt: 0.05,  ring: false, texturePath: "/textures/2k_neptune.jpg"       },
+  { page: "tasks",         label: "TASKS",               subLabel: "TO-DO LIST", color: "#f87171", emissive: "#dc2626", size: 2.90, orbitRadius: 46.0, angle: 215, ring: false, texturePath: "/textures/2k_mercury.jpg"      },
+  { page: "week",          label: "THIS WEEK",           subLabel: "WEEK VIEW",            color: "#fbbf24", emissive: "#d97706", size: 3.10, orbitRadius: 39.0, angle: 185, ring: false, texturePath: "/textures/2k_moon.jpg"          },
+  { page: "calendar",      label: "CALENDAR ",           subLabel: "CHRONOS METRICS",      color: "#34d399", emissive: "#059669", size: 3.60, orbitRadius: 32.0, angle: 150, ring: false, texturePath: "/textures/2k_earth_daymap.jpg"  },
+  { page: "documentation", label: "DOCUMENTATION",       subLabel: "ARCHIVE CORE",         color: "#fcd34d", emissive: "#d97706", size: 3.00, orbitRadius: 24.0, angle: 115, ring: false, texturePath: "/textures/2k_jupiter.jpg"       },
+  { page: "boards",        label: "BOARDS",              subLabel: "INFRASTRUCTURE",       color: "#c084fc", emissive: "#7c3aed", size: 3.00, orbitRadius: 24.0, angle: 65,  ring: false, texturePath: "/textures/2k_venus_surface.jpg" },
+  { page: "journal",       label: "JOURNAL",             subLabel: "PERSONAL FILES",        color: "#94a3b8", emissive: "#475569", size: 3.10, orbitRadius: 32.0, angle: 25,  ring: false, texturePath: "/textures/2k_mars.jpg"          },
+  { page: "finance",       label: "FINANCES",            subLabel: "BANK DETAILS",     color: "#4ade80", emissive: "#16a34a", size: 3.70, orbitRadius: 40.0, angle: -10, ring: true,  texturePath: "/textures/2k_saturn.jpg"        },
+  { page: "notifications", label: "NOTIFICATIONS",       subLabel: "LIVE STATUS",   color: "#60a5fa", emissive: "#2563eb", size: 3.40, orbitRadius: 48.0, angle: -40, ring: false, texturePath: "/textures/2k_neptune.jpg"       },
 ];
 
-const BG_PLANETS: BgDef[] = [
-  { id: "earth",   texturePath: "/textures/2k_earth_daymap.jpg", cloudPath: "/textures/2k_earth_clouds.jpg", position: [-22, 5, -20], size: 5.2, rotSpeed: 0.0025, axialTilt: 0.41, hasRing: false, fallbackColor: "#1e40af" },
-  // { id: "jupiter", texturePath: "/textures/2k_jupiter.jpg",      position: [26, -4, -28], size: 8.5, rotSpeed: 0.009,  axialTilt: 0.05, hasRing: false, fallbackColor: "#92400e" },
-  // { id: "saturn",  texturePath: "/textures/2k_saturn.jpg",       position: [-30, -9, -18], size: 4.2, rotSpeed: 0.004, axialTilt: 0.47, hasRing: true, ringColor: "#c8a050", fallbackColor: "#ca8a04" },
-];
+// ─── camera ────────────────────────────────────────────────────────────────
 
-// ─── sun ──────────────────────────────────────────────────────────────────────
+function CameraSetup() {
+  const { camera } = useThree();
+  useEffect(() => {
+    camera.position.set(0, 18, 54);
+    camera.lookAt(0, -2, 0);
+  }, [camera]);
+  return null;
+}
+
+// ─── sun ───────────────────────────────────────────────────────────────────
 
 function Sun() {
-  const coreRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
-  const r1 = useRef<THREE.Mesh>(null);
-  const r2 = useRef<THREE.Mesh>(null);
+  const coreRef  = useRef<THREE.Mesh>(null);
+  const glowRef  = useRef<THREE.Mesh>(null);
+  
+  const sunTexture = useLoader(THREE.TextureLoader, "/textures/2k_sun.jpg");
+  sunTexture.colorSpace = THREE.SRGBColorSpace;
+
   useFrame((s) => {
     const t = s.clock.elapsedTime;
-    if (coreRef.current) coreRef.current.rotation.y += 0.004;
-    if (glowRef.current) glowRef.current.scale.setScalar(1 + Math.sin(t * 1.4) * 0.035);
-    if (r1.current) r1.current.rotation.z += 0.008;
-    if (r2.current) r2.current.rotation.z -= 0.005;
+    if (coreRef.current) coreRef.current.rotation.y = t * 0.015;
+    if (glowRef.current) glowRef.current.rotation.y = -t * 0.008;
   });
+
   return (
     <group>
       <mesh ref={coreRef}>
-        <sphereGeometry args={[0.72, 32, 32]} />
-        <meshStandardMaterial color="#fff8dc" emissive="#ffcc00" emissiveIntensity={5} />
+        <sphereGeometry args={[6.5, 64, 64]} />
+        <meshBasicMaterial 
+          map={sunTexture}
+          color="#ffffff"
+        />
       </mesh>
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[1.18, 16, 16]} />
-        <meshStandardMaterial color="#ff8800" emissive="#ff5500" emissiveIntensity={1.5} transparent opacity={0.10} depthWrite={false} />
+
+      <mesh ref={glowRef} scale={1.03}>
+        <sphereGeometry args={[6.5, 32, 32]} />
+        <meshBasicMaterial
+          map={sunTexture}
+          color="#ffaa00"
+          transparent
+          opacity={0.4}
+          blending={THREE.AdditiveBlending}
+        />
       </mesh>
-      <mesh ref={r1} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.65, 0.022, 2, 80]} />
-        <meshStandardMaterial color="#818cf8" emissive="#6366f1" emissiveIntensity={3} transparent opacity={0.75} />
-      </mesh>
-      <mesh ref={r2} rotation={[Math.PI / 3, 0.3, 0]}>
-        <torusGeometry args={[2.05, 0.015, 2, 80]} />
-        <meshStandardMaterial color="#22d3ee" emissive="#06b6d4" emissiveIntensity={3} transparent opacity={0.55} />
-      </mesh>
-      <pointLight color="#fff8e7" intensity={6} distance={55} />
-      <pointLight color="#ffd700" intensity={2.5} distance={28} />
+
+      <pointLight color="#fff5e6" intensity={20} distance={300} decay={1} />
     </group>
   );
 }
 
-// ─── orbit ring ───────────────────────────────────────────────────────────────
+// ─── clock ─────────────────────────────────────────────────────────────────
 
-function OrbitRing({ radius, tilt }: { radius: number; tilt: number }) {
+function ClockDisplay() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const hhmm    = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const weekday = now.toLocaleDateString("en-GB",  { weekday: "long" }).toUpperCase();
+  const day     = now.getDate();
+  const month   = now.toLocaleDateString("en-GB",  { month: "long" }).toUpperCase();
   return (
-    <mesh rotation={[Math.PI / 2 + tilt * 0.5, 0, 0]}>
-      <torusGeometry args={[radius, 0.006, 2, 180]} />
-      <meshBasicMaterial color="#1e3a5f" transparent opacity={0.4} />
+    <div style={{ textAlign: "center", pointerEvents: "none", userSelect: "none" }}>
+      <div style={{ color: "#fff", fontSize: 38, fontWeight: 700, letterSpacing: 4, fontFamily: "system-ui,sans-serif" }}>
+        {hhmm}
+      </div>
+      <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 10, letterSpacing: 3, marginTop: 2, fontFamily: "system-ui,sans-serif" }}>
+        {weekday} {day} {month}
+      </div>
+    </div>
+  );
+}
+
+// ─── orbit ring ────────────────────────────────────────────────────────────
+
+function OrbitRing({ radius }: { radius: number }) {
+  return (
+    <mesh rotation={[Math.PI / 2, 0, 0]}>
+      <torusGeometry args={[radius, 0.04, 2, 200]} />
+      <meshBasicMaterial color="#4773b8" transparent opacity={0.25} />
     </mesh>
   );
 }
 
-// ─── planet ───────────────────────────────────────────────────────────────────
+// ─── planet meshes ─────────────────────────────────────────────────────────
 
-// Loaded: real texture via useLoader (suspends until ready)
-function PlanetTexturedMesh({ app, hovered, events }: { app: AppDef; hovered: boolean; events: MeshEvents }) {
-  const ref = useRef<THREE.Mesh>(null);
+type MeshCBs = {
+  onClick:        (e: any) => void;
+  onPointerEnter: (e: any) => void;
+  onPointerLeave: (e: any) => void;
+};
+
+function TexturedPlanet({ app, hovered, cbs }: { app: AppDef; hovered: boolean; cbs: MeshCBs }) {
+  const ref     = useRef<THREE.Mesh>(null);
   const texture = useLoader(THREE.TextureLoader, app.texturePath);
   texture.colorSpace = THREE.SRGBColorSpace;
-  useFrame(() => { if (ref.current) ref.current.rotation.y += 0.01; });
+  
+  useFrame(() => { if (ref.current) ref.current.rotation.y += 0.002; });
+  
   return (
-    <mesh ref={ref} {...events}>
-      <sphereGeometry args={[app.size, 44, 44]} />
-      <meshStandardMaterial map={texture} color="#ffffff" emissive={app.emissive} emissiveIntensity={hovered ? 1.6 : 0.06} roughness={0.78} metalness={0.02} />
+    <mesh ref={ref} {...cbs}>
+      <sphereGeometry args={[app.size, 48, 48]} />
+      <meshPhongMaterial 
+        map={texture} 
+        emissive={app.emissive}
+        emissiveIntensity={hovered ? 1.8 : 0.45} 
+        shininess={15}
+      />
     </mesh>
   );
 }
 
-// Fallback: colored sphere while texture loads
-function PlanetFallbackMesh({ app, hovered, events }: { app: AppDef; hovered: boolean; events: MeshEvents }) {
+function FallbackPlanet({ app, hovered, cbs }: { app: AppDef; hovered: boolean; cbs: MeshCBs }) {
   const ref = useRef<THREE.Mesh>(null);
-  useFrame(() => { if (ref.current) ref.current.rotation.y += 0.01; });
+  useFrame(() => { if (ref.current) ref.current.rotation.y += 0.002; });
   return (
-    <mesh ref={ref} {...events}>
-      <sphereGeometry args={[app.size, 28, 28]} />
-      <meshStandardMaterial color={app.color} emissive={app.emissive} emissiveIntensity={hovered ? 3.8 : 2.2} roughness={0.5} metalness={0.05} />
+    <mesh ref={ref} {...cbs}>
+      <sphereGeometry args={[app.size, 32, 32]} />
+      <meshPhongMaterial color={app.color} emissive={app.emissive}
+        emissiveIntensity={hovered ? 2.0 : 0.8} />
     </mesh>
   );
 }
 
-function Planet({ app, initialAngle, onClick, notifCount = 0 }: {
-  app: AppDef; initialAngle: number;
-  onClick: (page: Page, pos: THREE.Vector3) => void;
+// ─── planet ────────────────────────────────────────────────────────────────
+
+function Planet({ app, onClick, notifCount = 0 }: {
+  app: AppDef;
+  onClick: (page: Page) => void;
   notifCount?: number;
 }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const angleRef = useRef(initialAngle);
   const [hovered, setHovered] = useState(false);
 
-  useFrame((_, delta) => {
-    angleRef.current += delta * app.speed;
-    const a = angleRef.current;
-    if (groupRef.current) {
-      groupRef.current.position.set(
-        Math.cos(a) * app.orbitRadius,
-        Math.sin(a) * app.orbitRadius * app.tilt,
-        Math.sin(a) * app.orbitRadius,
-      );
-    }
-  });
+  const rad = (app.angle * Math.PI) / 180;
+  const x   = Math.cos(rad) * app.orbitRadius;
+  const z   = Math.sin(rad) * app.orbitRadius;
 
-  const handleClick = (e: any) => {
-    e.stopPropagation();
-    if (!groupRef.current) return;
-    const pos = new THREE.Vector3();
-    groupRef.current.getWorldPosition(pos);
-    onClick(app.page, pos);
-  };
-
-  const events: MeshEvents = {
-    onPointerEnter: (e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = "pointer"; },
+  const cbs: MeshCBs = {
+    onClick:        (e) => { e.stopPropagation(); onClick(app.page); },
+    onPointerEnter: (e) => { e.stopPropagation(); setHovered(true);  document.body.style.cursor = "pointer"; },
     onPointerLeave: (e) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = "default"; },
-    onClick: handleClick,
   };
 
   return (
-    <group ref={groupRef}>
-      <group scale={hovered ? 1.28 : 1}>
-        {/* Textured or colored fallback */}
-        <Suspense fallback={<PlanetFallbackMesh app={app} hovered={hovered} events={events} />}>
-          <PlanetTexturedMesh app={app} hovered={hovered} events={events} />
+    <group position={[x, 0, z]}>
+      <group scale={hovered ? 1.10 : 1}>
+        <Suspense fallback={<FallbackPlanet app={app} hovered={hovered} cbs={cbs} />}>
+          <TexturedPlanet app={app} hovered={hovered} cbs={cbs} />
         </Suspense>
 
-        {/* Atmosphere rim */}
-        <mesh scale={1.07}>
+        {/* atmosphere */}
+        <mesh scale={1.06}>
           <sphereGeometry args={[app.size, 16, 16]} />
-          <meshStandardMaterial color={app.color} emissive={app.emissive} emissiveIntensity={hovered ? 0.9 : 0.25} transparent opacity={0.09} depthWrite={false} side={THREE.BackSide} />
+          <meshBasicMaterial color={app.color} transparent opacity={hovered ? 0.15 : 0.04} side={THREE.BackSide} />
         </mesh>
 
-        {/* Saturn-style ring */}
+        {/* saturn ring */}
         {app.ring && (
-          <mesh rotation={[Math.PI / 2.4, 0.2, 0]}>
-            <torusGeometry args={[app.size * 1.9, app.size * 0.15, 2, 80]} />
-            <meshStandardMaterial color="#d4a855" emissive="#8b6914" emissiveIntensity={hovered ? 1.0 : 0.35} transparent opacity={0.65} roughness={0.9} />
+          <mesh rotation={[Math.PI / 2.5, 0.15, 0]}>
+            <torusGeometry args={[app.size * 1.65, app.size * 0.10, 2, 80]} />
+            <meshBasicMaterial color="#e0b96b" transparent opacity={hovered ? 0.7 : 0.35} />
           </mesh>
         )}
       </group>
 
-      {/* Hover tooltip */}
-      {hovered && (
-        <Html center distanceFactor={8} style={{ pointerEvents: "none" }}>
+      {/* Sci-Fi HUD Label Component */}
+      <Html position={[0, app.size + 1.8, 0]} center style={{ pointerEvents: "none", userSelect: "none" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "160px" }}>
+          
           <div style={{
-            background: "rgba(2,6,23,0.92)", border: `1px solid ${app.color}55`,
-            borderRadius: 8, padding: "5px 14px", color: app.color,
-            fontSize: 11, fontWeight: 700, letterSpacing: 2, whiteSpace: "nowrap",
-            transform: "translateY(-44px)", textShadow: `0 0 10px ${app.color}`,
-            fontFamily: "system-ui, sans-serif",
+            borderLeft: `2px solid ${hovered ? '#ffffff' : 'rgba(255,255,255,0.25)'}`,
+            paddingLeft: "8px",
+            transition: "all 0.2s ease-in-out",
+            transform: hovered ? "scale(1.05)" : "scale(1)"
           }}>
-            {app.label.toUpperCase()}
+            <div style={{
+              color: hovered ? "#ffffff" : "rgba(230, 240, 255, 0.85)",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 2,
+              fontFamily: "monospace, system-ui",
+              whiteSpace: "nowrap",
+            }}>
+              {app.label}
+            </div>
+            <div style={{
+              color: hovered ? app.color : "rgba(255,255,255,0.35)",
+              fontSize: 8,
+              letterSpacing: 1,
+              fontFamily: "monospace",
+              marginTop: 2,
+              whiteSpace: "nowrap",
+            }}>
+              {app.subLabel}
+            </div>
           </div>
-        </Html>
-      )}
 
-      {/* Notif badge */}
-      {notifCount > 0 && (
-        <Html center distanceFactor={8} style={{ pointerEvents: "none" }}>
           <div style={{
-            background: "#ef4444", border: "2px solid #020617", borderRadius: "50%",
-            width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: 9, fontWeight: 700,
-            transform: `translate(${app.size * 36}px, -${app.size * 36}px)`,
-            fontFamily: "system-ui, sans-serif",
+            width: "1px", 
+            height: "20px", 
+            marginTop: "4px",
+            background: hovered
+              ? `linear-gradient(to bottom, #ffffff, ${app.color})`
+              : "linear-gradient(to bottom, rgba(255,255,255,0.25), transparent)",
+            transition: "all 0.2s"
+          }} />
+        </div>
+      </Html>
+
+      {/* notif badge */}
+      {notifCount > 0 && (
+        <Html position={[app.size * 0.75, app.size * 0.75, 0]} center style={{ pointerEvents: "none" }}>
+          <div style={{
+            background: "#ef4444", border: "1.5px solid #020617",
+            borderRadius: "50%", width: 16, height: 16,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontSize: 8, fontWeight: 700, fontFamily: "sans-serif",
+            boxShadow: "0 0 12px #ef4444"
           }}>
             {notifCount > 99 ? "99+" : notifCount}
           </div>
@@ -213,162 +263,94 @@ function Planet({ app, initialAngle, onClick, notifCount = 0 }: {
   );
 }
 
-// ─── background planets ───────────────────────────────────────────────────────
-
-function BgPlanetLoaded({ def }: { def: BgDef }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const cloudsRef = useRef<THREE.Mesh>(null);
-  const texture = useLoader(THREE.TextureLoader, def.texturePath);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  useFrame(() => {
-    if (meshRef.current) meshRef.current.rotation.y += def.rotSpeed;
-    if (cloudsRef.current) cloudsRef.current.rotation.y += def.rotSpeed * 1.12;
-  });
-  return (
-    <>
-      <mesh ref={meshRef}>
-        <sphereGeometry args={[def.size, 56, 56]} />
-        <meshStandardMaterial map={texture} color="#ffffff" emissive={def.fallbackColor} emissiveIntensity={0.04} roughness={0.88} />
-      </mesh>
-      {def.cloudPath && <BgCloudLayer def={def} />}
-      {def.hasRing && <BgRing def={def} />}
-    </>
-  );
-}
-
-function BgCloudLayer({ def }: { def: BgDef }) {
-  const ref = useRef<THREE.Mesh>(null);
-  const tex = useLoader(THREE.TextureLoader, def.cloudPath!);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  useFrame(() => { if (ref.current) ref.current.rotation.y += def.rotSpeed * 1.12; });
-  return (
-    <mesh ref={ref} scale={1.006}>
-      <sphereGeometry args={[def.size, 40, 40]} />
-      <meshStandardMaterial map={tex} transparent opacity={0.28} depthWrite={false} />
-    </mesh>
-  );
-}
-
-function BgRing({ def }: { def: BgDef }) {
-  return (
-    <mesh rotation={[Math.PI / 2.1, 0.1, 0]}>
-      <torusGeometry args={[def.size * 2.0, def.size * 0.42, 2, 120]} />
-      <meshStandardMaterial color={def.ringColor ?? "#c8a050"} transparent opacity={0.52} roughness={0.95} />
-    </mesh>
-  );
-}
-
-function BgPlanetFallback({ def }: { def: BgDef }) {
-  return (
-    <>
-      <mesh>
-        <sphereGeometry args={[def.size, 32, 32]} />
-        <meshStandardMaterial color={def.fallbackColor} emissive={def.fallbackColor} emissiveIntensity={0.12} roughness={0.88} />
-      </mesh>
-      {def.hasRing && <BgRing def={def} />}
-    </>
-  );
-}
-
-function BackgroundPlanet({ def }: { def: BgDef }) {
-  return (
-    <group position={def.position} rotation={[def.axialTilt, 0, 0]}>
-      <Suspense fallback={<BgPlanetFallback def={def} />}>
-        <BgPlanetLoaded def={def} />
-      </Suspense>
-    </group>
-  );
-}
-
-// ─── scene ────────────────────────────────────────────────────────────────────
+// ─── scene ─────────────────────────────────────────────────────────────────
 
 function Scene({ onNavigate, notifCount }: { onNavigate: (p: Page) => void; notifCount: number }) {
-  const { camera } = useThree();
-  const navRef = useRef<{ target: THREE.Vector3 } | null>(null);
-
-  const handlePlanetClick = (page: Page, pos: THREE.Vector3) => {
-    navRef.current = { target: pos.clone() };
-    setTimeout(() => { onNavigate(page); navRef.current = null; }, 720);
-  };
-
-  useFrame(() => {
-    if (navRef.current) {
-      const t = navRef.current.target;
-      camera.position.lerp(new THREE.Vector3(t.x * 0.38, 3, t.z * 0.38), 0.065);
-    }
-  });
-
+  const nav = (page: Page) => setTimeout(() => onNavigate(page), 200);
   return (
     <>
-      <ambientLight intensity={0.18} />
-      <Stars radius={140} depth={60} count={7000} factor={4} saturation={0.2} fade speed={0.3} />
-      {BG_PLANETS.map((def) => <BackgroundPlanet key={def.id} def={def} />)}
+      <CameraSetup />
+      <ambientLight intensity={0.4} />
+      <Stars radius={280} depth={100} count={9000} factor={3.5} saturation={0.5} fade speed={0.1} />
       <Sun />
-      {APPS.map((app) => <OrbitRing key={`ring-${app.page}`} radius={app.orbitRadius} tilt={app.tilt} />)}
-      {APPS.map((app, i) => (
-        <Planet key={app.page} app={app} initialAngle={(i / APPS.length) * Math.PI * 2}
-          onClick={handlePlanetClick} notifCount={app.page === "notifications" ? notifCount : 0} />
+      {APPS.map((a) => <OrbitRing key={`r-${a.page}`} radius={a.orbitRadius} />)}
+      {APPS.map((a) => (
+        <Planet key={a.page} app={a} onClick={nav}
+          notifCount={a.page === "notifications" ? notifCount : 0} />
       ))}
       <EffectComposer>
-        <Bloom luminanceThreshold={0.14} luminanceSmoothing={0.9} intensity={2.0} />
+        <Bloom luminanceThreshold={0.15} luminanceSmoothing={0.7} intensity={0.7} />
       </EffectComposer>
     </>
   );
 }
 
-// ─── main ─────────────────────────────────────────────────────────────────────
+// ─── main component ────────────────────────────────────────────────────────
 
 interface Props {
   onNavigate: (page: Page) => void;
   notifCount?: number;
   onLogout?: () => void;
+  onToggleView?: () => void;
 }
 
-export default function GalaxyHome({ onNavigate, notifCount = 0, onLogout }: Props) {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  const dateStr = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-
+export default function GalaxyHome({ onNavigate, notifCount = 0, onLogout, onToggleView }: Props) {
   return (
     <div style={{
       width: "100vw", height: "100vh", position: "relative", overflow: "hidden",
       background: `
-        radial-gradient(ellipse 55% 38% at 12% 22%, rgba(88,28,135,0.20) 0%, transparent 70%),
-        radial-gradient(ellipse 48% 34% at 88% 14%, rgba(30,58,138,0.16) 0%, transparent 65%),
-        radial-gradient(ellipse 42% 30% at 75% 88%, rgba(6,78,59,0.13) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 36% at 6%  78%, rgba(76,29,149,0.12) 0%, transparent 55%),
-        #000008
+        radial-gradient(ellipse 60% 40% at 20% 25%, rgba(20, 10, 70, 0.6) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 80% 15%, rgba(10, 20, 80, 0.5) 0%, transparent 60%),
+        radial-gradient(ellipse 90% 70% at 50% 50%, #030514 20%, #000002 100%)
       `,
     }}>
+      {/* Brand Header */}
       <div style={{
-        position: "absolute", top: 32, left: "50%", transform: "translateX(-50%)",
-        zIndex: 10, textAlign: "center", pointerEvents: "none", userSelect: "none",
+        position: "absolute", top: 24, left: 24, zIndex: 10,
+        color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: 700,
+        letterSpacing: 4, fontFamily: "monospace, sans-serif",
+        userSelect: "none", pointerEvents: "none",
       }}>
-        <div style={{ color: "#fff", fontSize: 34, fontWeight: 800, letterSpacing: 12, fontFamily: "system-ui, sans-serif", textShadow: "0 0 30px rgba(99,102,241,0.6), 0 0 60px rgba(99,102,241,0.2)" }}>
-          ORBIT
-        </div>
-        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, letterSpacing: 3, marginTop: 8, fontFamily: "system-ui, sans-serif" }}>
-          {timeStr} · {dateStr}
-        </div>
+        ORBIT SYSTEM
       </div>
 
-      <div style={{
-        position: "absolute", bottom: 28, left: "50%", transform: "translateX(-50%)",
-        zIndex: 10, color: "rgba(255,255,255,0.18)", fontSize: 10, letterSpacing: 4,
-        pointerEvents: "none", fontFamily: "system-ui, sans-serif", textTransform: "uppercase", userSelect: "none",
-      }}>
-        Click a planet to explore
+      {/* Clock Display */}
+      <div style={{ position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 10 }}>
+        <ClockDisplay />
       </div>
 
-      {onLogout && (
-        <button onClick={onLogout} title="Sign out" style={{
-          position: "absolute", top: 20, right: 20, zIndex: 10,
-          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
-          color: "rgba(255,255,255,0.3)", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 16,
-        }}>⏻</button>
-      )}
+      {/* Control Utility Buttons */}
+      <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10, display: "flex", gap: 8 }}>
+        {onToggleView && (
+          <button onClick={onToggleView} title="Grid view" style={{
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)",
+            color: "rgba(255,255,255,0.4)", borderRadius: 6, padding: "8px 14px",
+            cursor: "pointer", fontSize: 13, backdropFilter: "blur(12px)",
+          }}>⊞</button>
+        )}
+        {onLogout && (
+          <button onClick={onLogout} title="Sign out" style={{
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)",
+            color: "rgba(255,255,255,0.4)", borderRadius: 6, padding: "8px 14px",
+            cursor: "pointer", fontSize: 14, backdropFilter: "blur(12px)",
+          }}>⏻</button>
+        )}
+      </div>
 
-      <Canvas camera={{ position: [0, 9, 20], fov: 56 }} style={{ position: "absolute", inset: 0 }} gl={{ antialias: true, alpha: true }}>
+      {/* Navigation Instruction Footer */}
+      <div style={{
+        position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
+        zIndex: 10, color: "rgba(255,255,255,0.25)", fontSize: 9, letterSpacing: 3,
+        pointerEvents: "none", fontFamily: "monospace", userSelect: "none",
+      }}>
+        SELECT A PLANET TO ENGAGE
+      </div>
+
+      <Canvas
+        camera={{ position: [0, 18, 54], fov: 50 }}
+        style={{ position: "absolute", inset: 0 }}
+        gl={{ antialias: true, alpha: true }}
+      >
         <Scene onNavigate={onNavigate} notifCount={notifCount} />
       </Canvas>
     </div>

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
-import axios from "axios";
+import http from "../http";
 import "./css/WeekPage.css";
 
 dayjs.extend(isoWeek);
 
-const API = "http://localhost:3001/api/schedule";
+const API = "/schedule";
 
 type EventType = "work" | "shift" | "personal" | "meeting" | "gym";
 
@@ -38,6 +38,35 @@ const TYPE_LABELS: Record<EventType, string> = {
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+function TimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [h = "", m = ""] = value ? value.split(":") : [];
+  return (
+    <div className="ef-time-select">
+      <select
+        className="ef-time-sel"
+        value={h}
+        onChange={e => onChange(e.target.value ? `${e.target.value}:${m || "00"}` : "")}
+      >
+        <option value="">HH</option>
+        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(hh => (
+          <option key={hh} value={hh}>{hh}</option>
+        ))}
+      </select>
+      <span className="ef-time-colon">:</span>
+      <select
+        className="ef-time-sel"
+        value={m}
+        onChange={e => onChange(h ? `${h}:${e.target.value || "00"}` : "")}
+      >
+        <option value="">MM</option>
+        {Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0")).map(mm => (
+          <option key={mm} value={mm}>{mm}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 interface EventFormState {
   title: string;
   start_time: string;
@@ -63,7 +92,7 @@ export default function WeekPage() {
   useEffect(() => { loadEvents(); }, [weekStart]);
 
   const loadEvents = async () => {
-    const res = await axios.get<ScheduleEvent[]>(API, {
+    const res = await http.get<ScheduleEvent[]>(API, {
       params: {
         start: weekStart.format("YYYY-MM-DD"),
         end: weekEnd.format("YYYY-MM-DD"),
@@ -106,7 +135,7 @@ export default function WeekPage() {
     if (!form.title.trim()) return;
 
     if (editingEvent) {
-      const res = await axios.put<ScheduleEvent>(`${API}/${editingEvent.id}`, {
+      const res = await http.put<ScheduleEvent>(`${API}/${editingEvent.id}`, {
         title: form.title,
         date: editingEvent.date,
         start_time: form.start_time,
@@ -116,7 +145,7 @@ export default function WeekPage() {
       setEvents(prev => prev.map(e => e.id === editingEvent.id ? res.data : e));
     } else {
       if (form.selectedDays.length === 0) return;
-      const res = await axios.post<ScheduleEvent[]>(`${API}/bulk`, {
+      const res = await http.post<ScheduleEvent[]>(`${API}/bulk`, {
         title: form.title,
         dates: form.selectedDays,
         start_time: form.start_time,
@@ -132,7 +161,7 @@ export default function WeekPage() {
   };
 
   const handleDelete = async (id: number) => {
-    await axios.delete(`${API}/${id}`);
+    await http.delete(`${API}/${id}`);
     setEvents(prev => prev.filter(e => e.id !== id));
   };
 
@@ -254,18 +283,14 @@ export default function WeekPage() {
             <div className="ef-field">
               <label className="ef-label">Time</label>
               <div className="ef-row">
-                <input
-                  className="ef-time"
-                  type="time"
+                <TimeSelect
                   value={form.start_time}
-                  onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
+                  onChange={v => setForm(f => ({ ...f, start_time: v }))}
                 />
                 <span className="ef-arrow">→</span>
-                <input
-                  className="ef-time"
-                  type="time"
+                <TimeSelect
                   value={form.end_time}
-                  onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
+                  onChange={v => setForm(f => ({ ...f, end_time: v }))}
                 />
               </div>
             </div>

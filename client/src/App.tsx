@@ -9,6 +9,7 @@ import WeekPage from "./components/WeekPage";
 import JournalPage from "./components/JournalPage";
 import FinancePage from "./components/FinancePage";
 import GalaxyHome from "./components/GalaxyHome";
+import HomePage from "./components/HomePage";
 import HomeButton from "./components/HomeButton";
 import NotificationsPage from "./components/NotificationsPage";
 import LoginPage from "./components/LoginPage";
@@ -33,6 +34,15 @@ export default function App() {
   const [page, setPage] = useState<Page>("home");
   const [notifCount, setNotifCount] = useState(0);
   const [financeSection, setFinanceSection] = useState<string | undefined>(undefined);
+  const [viewMode, setViewMode] = useState<"galaxy" | "grid">(() =>
+    (localStorage.getItem("orbit_view") as "galaxy" | "grid") || "galaxy"
+  );
+
+  const toggleView = () => setViewMode(m => {
+    const next = m === "galaxy" ? "grid" : "galaxy";
+    localStorage.setItem("orbit_view", next);
+    return next;
+  });
 
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const today = dayjs().format("YYYY-MM-DD");
@@ -134,7 +144,9 @@ export default function App() {
   }
 
   if (page === "home") {
-    return <GalaxyHome onNavigate={setPage} notifCount={notifCount} onLogout={handleLogout} />;
+    return viewMode === "galaxy"
+      ? <GalaxyHome onNavigate={setPage} notifCount={notifCount} onLogout={handleLogout} onToggleView={toggleView} />
+      : <HomePage   onNavigate={setPage} notifCount={notifCount} onLogout={handleLogout} onToggleView={toggleView} />;
   }
 
   return (

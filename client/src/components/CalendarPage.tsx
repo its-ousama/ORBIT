@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
-import axios from "axios";
+import http from "../http";
 import type { Task, Priority } from "../types";
 import "./css/CalendarPage.css";
 
@@ -25,7 +25,7 @@ export default function CalendarPage({ onGoToDay }: Props) {
   const [popup, setPopup] = useState<DayPopup | null>(null);
 
   useEffect(() => {
-    axios.get<Task[]>("http://localhost:3001/api/tasks").then(r => setAllTasks(r.data));
+    http.get<Task[]>("/tasks").then(r => setAllTasks(r.data));
   }, []);
 
   const tasksByDate: Record<string, Task[]> = {};
