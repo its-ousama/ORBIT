@@ -34,9 +34,10 @@ interface Props {
   onNavigate: (page: Page) => void;
   notifCount?: number;
   onLogout?: () => void;
+  onToggleView?: () => void;
 }
 
-export default function HomePage({ onNavigate, notifCount = 0, onLogout }: Props) {
+export default function HomePage({ onNavigate, notifCount = 0, onLogout, onToggleView }: Props) {
   const [clicked, setClicked] = useState<Page | null>(null);
 
   const handleClick = (page: Page) => {
@@ -111,11 +112,18 @@ export default function HomePage({ onNavigate, notifCount = 0, onLogout }: Props
 
       <div className="home-hint">Everything revolves around you</div>
 
-      {onLogout && (
-        <button className="home-signout" onClick={onLogout} title="Sign out">
-          ⏻
-        </button>
-      )}
+      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 100, display: "flex", gap: 8 }}>
+        {onToggleView && (
+          <button className="home-signout" onClick={onToggleView} title="Switch to galaxy view" style={{ position: "static" }}>
+            ◎
+          </button>
+        )}
+        {onLogout && (
+          <button className="home-signout" onClick={onLogout} title="Sign out" style={{ position: "static" }}>
+            ⏻
+          </button>
+        )}
+      </div>
     </div>
   );
 }

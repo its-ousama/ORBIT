@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { Task, Priority, Status } from "../types";
-import axios from "axios";
+import http from "../http";
 import "./css/TaskCard.css";
 
 const PRIORITY_COLORS: Record<Priority, string> = {
@@ -41,7 +41,7 @@ export default function TaskCard({ task, index = 0, onStatus, onDelete, onEdit }
 
   const saveEdit = async () => {
     if (!editTitle.trim()) return;
-    const res = await axios.patch<Task>(`http://localhost:3001/api/tasks/${task.id}`, {
+    const res = await http.patch<Task>(`/tasks/${task.id}`, {
       title: editTitle.trim(),
       priority: editPriority,
       color: PRIORITY_COLORS[editPriority],

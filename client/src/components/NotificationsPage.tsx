@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import http from "../http";
 import dayjs from "dayjs";
 import { getMonthlySummary, getCategorySpending, getGoals, getPendingRecurring, getTransactions } from "../financeAPI";
 import "./css/NotificationsPage.css";
@@ -140,7 +140,7 @@ export default function NotificationsPage({ onNavigate }: Props) {
 
     // ── Tasks notifications ─────────────────────────────────────────────────
     try {
-      const res = await axios.get("http://localhost:3001/api/tasks");
+      const res = await http.get("/tasks");
       const allTasks = res.data;
 
       // Overdue — pending tasks from previous days
@@ -185,7 +185,7 @@ export default function NotificationsPage({ onNavigate }: Props) {
 
     // ── This Week notifications ─────────────────────────────────────────────
     try {
-      const res = await axios.get("http://localhost:3001/api/schedule", {
+      const res = await http.get("/schedule", {
         params: { start: today, end: today }
       });
       const todayEvents = res.data;

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import axios from "axios";
+import http from "../http";
 import dayjs from "dayjs";
 import "./css/BoardsPage.css";
 
-const API = "http://localhost:3001/api/boards";
+const API = "/boards";
 
 interface BoardMeta {
   id: number;
@@ -32,19 +32,19 @@ export default function BoardsPage() {
   useEffect(() => { loadBoards(); }, []);
 
   const loadBoards = async () => {
-    const res = await axios.get<BoardMeta[]>(API);
+    const res = await http.get<BoardMeta[]>(API);
     setBoards(res.data);
   };
 
   const openBoard = async (id: number) => {
-    const res = await axios.get<BoardFull>(`${API}/${id}`);
+    const res = await http.get<BoardFull>(`${API}/${id}`);
     setActiveBoard(res.data);
     setLastSaved(null);
   };
 
   const createBoard = async () => {
     if (!newName.trim()) return;
-    const res = await axios.post<BoardMeta>(API, { name: newName.trim() });
+    const res = await http.post<BoardMeta>(API, { name: newName.trim() });
     setBoards(prev => [res.data, ...prev]);
     setNewName("");
     setCreating(false);
@@ -53,14 +53,14 @@ export default function BoardsPage() {
 
   const deleteBoard = async (id: number) => {
     if (!confirm("Delete this board?")) return;
-    await axios.delete(`${API}/${id}`);
+    await http.delete(`${API}/${id}`);
     setBoards(prev => prev.filter(b => b.id !== id));
     if (activeBoard?.id === id) setActiveBoard(null);
   };
 
   const renameBoard = async () => {
     if (!activeBoard || !renameName.trim()) return;
-    const res = await axios.patch<BoardMeta>(`${API}/${activeBoard.id}`, { name: renameName.trim() });
+    const res = await http.patch<BoardMeta>(`${API}/${activeBoard.id}`, { name: renameName.trim() });
     setBoards(prev => prev.map(b => b.id === res.data.id ? { ...b, name: res.data.name } : b));
     setActiveBoard(prev => prev ? { ...prev, name: res.data.name } : null);
     setRenaming(false);
@@ -71,7 +71,7 @@ export default function BoardsPage() {
     if (!activeBoard) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      await axios.put(`${API}/${activeBoard.id}`, {
+      await http.put(`${API}/${activeBoard.id}`, {
         data: { elements, appState: { ...appState, collaborators: [] } }
       });
       setLastSaved(dayjs().format("HH:mm:ss"));

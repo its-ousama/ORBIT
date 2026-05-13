@@ -147,6 +147,25 @@
 .login-btn:active { transform: scale(0.98); }
 .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.login-switch {
+  font-size: 0.82rem;
+  color: #64748b;
+  text-align: center;
+  margin: 0;
+}
+
+.login-switch-btn {
+  background: none;
+  border: none;
+  color: #818cf8;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.login-switch-btn:hover { color: #a5b4fc; }
+
 .login-footer {
   font-size: 0.78rem;
   color: #475569;
