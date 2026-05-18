@@ -5,12 +5,3 @@ The "GOOGLE PLUS" makes a lot more sense
 So the vision is something like: instead of opening a browser and going to google.com,you open this, and everything you need is already there — 
 your tasks, your KB, your drawings,bank statements, and eventually links into all your past projects, tools you use, stuff you've built.
 
-
-
-login page
-new name
-fix how passwords show
-docker 
-
-
-atsasi ou traktarista ,
