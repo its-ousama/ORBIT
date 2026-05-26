@@ -13,10 +13,11 @@ import HomePage from "./components/HomePage";
 import HomeButton from "./components/HomeButton";
 import NotificationsPage from "./components/NotificationsPage";
 import LoginPage from "./components/LoginPage";
+import GalaxyGatePage from "./components/GalaxyGatePage";
 import { getPendingRecurring, getCategorySpending, getTransactions } from "./financeAPI";
 import "./App.css";
 
-export type Page = "home" | "tasks" | "calendar" | "documentation" | "boards" | "week" | "journal" | "finance" | "notifications";
+export type Page = "home" | "tasks" | "calendar" | "documentation" | "boards" | "week" | "journal" | "finance" | "notifications" | "galaxy-gate";
 
 interface AuthUser { id: number; email: string; username: string; }
 
@@ -39,11 +40,17 @@ export default function App() {
     return (localStorage.getItem("orbit_view") as "galaxy" | "grid") || "galaxy";
   });
 
-  const toggleView = () => setViewMode(m => {
-    const next = m === "galaxy" ? "grid" : "galaxy";
-    localStorage.setItem("orbit_view", next);
-    return next;
-  });
+  const toggleView = () => {
+    if (window.innerWidth <= 768) {
+      setPage("galaxy-gate");
+      return;
+    }
+    setViewMode(m => {
+      const next = m === "galaxy" ? "grid" : "galaxy";
+      localStorage.setItem("orbit_view", next);
+      return next;
+    });
+  };
 
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const today = dayjs().format("YYYY-MM-DD");
@@ -144,6 +151,10 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
+  if (page === "galaxy-gate") {
+    return <GalaxyGatePage onBack={() => setPage("home")} />;
+  }
+
   if (page === "home") {
     return viewMode === "galaxy"
       ? <GalaxyHome onNavigate={setPage} notifCount={notifCount} onLogout={handleLogout} onToggleView={toggleView} />
@@ -155,9 +166,9 @@ export default function App() {
       <HomeButton onHome={goHome} />
       {page === "tasks" && <TasksPage selectedDate={selectedDate} onDateChange={setSelectedDate} />}
       {page === "calendar" && <CalendarPage onGoToDay={goToDay} />}
-      {page === "documentation" && <DocumentationPage />}
-      {page === "boards" && <BoardsPage />}
-      {page === "week" && <WeekPage />}
+      {page === "documentation" && <DocumentationPage onGoHome={goHome} />}
+      {page === "boards" && <BoardsPage onGoHome={goHome} />}
+      {page === "week" && <WeekPage onGoHome={goHome} />}
       {page === "journal" && <JournalPage />}
       {page === "finance" && <FinancePage initialSection={financeSection} />}
       {page === "notifications" && <NotificationsPage onNavigate={handleNotifNavigate} />}

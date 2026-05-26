@@ -5,7 +5,7 @@ import TopicView from "./TopicView";
 import TopicForm from "./TopicForm";
 import "./css/DocumentationPage.css";
 
-export default function DocumentationPage() {
+export default function DocumentationPage({ onGoHome }: { onGoHome?: () => void }) {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selected, setSelected] = useState<Topic | null>(null);
   const [search, setSearch] = useState("");
@@ -68,6 +68,11 @@ export default function DocumentationPage() {
         <span>🖥️</span>
         <strong>Open on desktop</strong>
         <p>The knowledge base requires a larger screen.</p>
+        {onGoHome && (
+          <button onClick={onGoHome} style={{ marginTop: "1rem", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", color: "#fff", fontSize: "0.875rem", padding: "0.5rem 1.25rem", cursor: "pointer" }}>
+            ← Home
+          </button>
+        )}
       </div>
       <aside className="doc-sidebar">
         <div className="doc-sidebar-top">

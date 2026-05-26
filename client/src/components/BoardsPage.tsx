@@ -19,7 +19,7 @@ interface BoardFull extends BoardMeta {
 import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 
-export default function BoardsPage() {
+export default function BoardsPage({ onGoHome }: { onGoHome?: () => void }) {
   const [boards, setBoards] = useState<BoardMeta[]>([]);
   const [activeBoard, setActiveBoard] = useState<BoardFull | null>(null);
   const [newName, setNewName] = useState("");
@@ -124,6 +124,11 @@ export default function BoardsPage() {
         <span>🖥️</span>
         <strong>Open on desktop</strong>
         <p>Boards requires a larger screen.</p>
+        {onGoHome && (
+          <button onClick={onGoHome} style={{ marginTop: "1rem", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", color: "#fff", fontSize: "0.875rem", padding: "0.5rem 1.25rem", cursor: "pointer" }}>
+            ← Home
+          </button>
+        )}
       </div>
       <div className="boards-header">
         <div>

@@ -75,7 +75,7 @@ interface EventFormState {
   selectedDays: string[];
 }
 
-export default function WeekPage() {
+export default function WeekPage({ onGoHome }: { onGoHome?: () => void }) {
   const [weekStart, setWeekStart] = useState(dayjs().isoWeekday(1).startOf("day"));
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [addingTo, setAddingTo] = useState<string | null>(null);
@@ -182,6 +182,11 @@ export default function WeekPage() {
         <span>🖥️</span>
         <strong>Open on desktop</strong>
         <p>The week view requires a larger screen.</p>
+        {onGoHome && (
+          <button onClick={onGoHome} style={{ marginTop: "1rem", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", color: "#fff", fontSize: "0.875rem", padding: "0.5rem 1.25rem", cursor: "pointer" }}>
+            ← Home
+          </button>
+        )}
       </div>
       <div className="week-header">
         <div>
