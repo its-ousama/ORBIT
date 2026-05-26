@@ -224,3 +224,9 @@
 }
 
 .cancel-btn:hover { background: #e2e8f0; }
+
+@media (max-width: 768px) {
+  .task-actions {
+    opacity: 1;
+  }
+}

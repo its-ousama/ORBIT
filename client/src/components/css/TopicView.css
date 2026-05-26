@@ -257,3 +257,27 @@
   margin-top: 0.1rem;
   line-height: 1.4;
 }
+
+@media (max-width: 768px) {
+  .tv-hero {
+    flex-wrap: wrap;
+    padding: 1.25rem;
+  }
+
+  .tv-name {
+    font-size: 1.4rem;
+  }
+
+  .tv-actions {
+    width: 100%;
+  }
+
+  .tv-concepts {
+    grid-template-columns: 1fr;
+  }
+
+  .tv-connect-chip {
+    min-width: unset;
+    width: 100%;
+  }
+}

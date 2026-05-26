@@ -217,3 +217,22 @@
   font-size: 0.9rem;
   outline: none;
 }
+
+@media (max-width: 768px) {
+  .journal-gate-box {
+    width: 100%;
+    margin: 16px;
+  }
+
+  .journal-list-page {
+    padding: 1.25rem 1rem;
+  }
+
+  .journal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .journal-card-actions {
+    opacity: 1;
+  }
+}

@@ -83,3 +83,66 @@
   background: #f3f4f6;
   color: #6366f1;
 }
+
+/* ── Bottom nav (mobile only) ──────────────────────────────────────────────── */
+
+.finance-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .finance-sidebar {
+    display: none;
+  }
+
+  .finance-main {
+    padding: 1.25rem 1rem;
+    padding-bottom: 80px;
+  }
+
+  .finance-gate-box {
+    width: calc(100vw - 2rem);
+  }
+
+  .finance-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    z-index: 200;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+  }
+
+  .finance-bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    position: relative;
+    transition: color 0.15s;
+  }
+
+  .finance-bottom-nav-item.active {
+    color: #6366f1;
+  }
+
+  .finance-bottom-nav-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .finance-bottom-nav-label {
+    font-size: 0.62rem;
+    font-weight: 500;
+  }
+}

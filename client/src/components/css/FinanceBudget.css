@@ -132,3 +132,22 @@
 }
 
 .finance-recurring-row:hover .finance-recurring-delete { opacity: 1; }
+
+@media (max-width: 768px) {
+  .finance-cat-row {
+    flex-wrap: wrap;
+  }
+
+  .finance-cat-info {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .finance-cat-actions button {
+    opacity: 1;
+  }
+
+  .finance-recurring-delete {
+    opacity: 1;
+  }
+}

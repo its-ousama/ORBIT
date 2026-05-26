@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCategories, createCategory, updateCategory, deleteCategory, getCategorySpending, getRecurring, deleteRecurring } from "../financeAPI";
+import {  createCategory, updateCategory, deleteCategory, getCategorySpending, getRecurring, deleteRecurring } from "../financeAPI";
 import type { FinanceCategorySpending, FinanceRecurring } from "../types";
 import "./css/FinanceBudget.css";
 

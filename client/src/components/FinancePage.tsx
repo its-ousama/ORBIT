@@ -162,6 +162,21 @@ export default function FinancePage({ initialSection }: Props) {
         {section === "goals" && <FinanceGoals />}
         {section === "notifications" && <FinanceNotifications currentMonth={currentMonth} onConfirmed={fetchPendingCount} />}
       </div>
+      <nav className="finance-bottom-nav">
+        {navItems.map(item => (
+          <button
+            key={item.key}
+            className={`finance-bottom-nav-item ${section === item.key ? "active" : ""}`}
+            onClick={() => setSection(item.key)}
+          >
+            <span className="finance-bottom-nav-icon">{item.icon}</span>
+            <span className="finance-bottom-nav-label">{item.label}</span>
+            {item.key === "notifications" && pendingCount > 0 && (
+              <span className="finance-nav-badge">{pendingCount}</span>
+            )}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }

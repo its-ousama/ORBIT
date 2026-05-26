@@ -21,7 +21,7 @@ export default function LoginPage({ onLogin }: Props) {
     try {
       const endpoint = mode === "login" ? "auth/login" : "auth/register";
       const payload = mode === "login" ? { email, password } : { email, username, password };
-      const { data } = await axios.post(`http://localhost:3001/api/${endpoint}`, payload);
+      const { data } = await axios.post(`/api/${endpoint}`, payload);
       localStorage.setItem("orbit_token", data.accessToken);
       localStorage.setItem("orbit_refresh", data.refreshToken);
       localStorage.setItem("orbit_user", JSON.stringify(data.user));

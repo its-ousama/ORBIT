@@ -229,3 +229,17 @@
   pointer-events: none;
   height: 0;
 }
+
+@media (max-width: 768px) {
+  .journal-editor-topbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .journal-theme-panel {
+    gap: 1rem;
+  }
+
+  .journal-tiptap {
+    padding: 0 1rem;
+  }
+}

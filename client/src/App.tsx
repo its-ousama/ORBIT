@@ -34,9 +34,10 @@ export default function App() {
   const [page, setPage] = useState<Page>("home");
   const [notifCount, setNotifCount] = useState(0);
   const [financeSection, setFinanceSection] = useState<string | undefined>(undefined);
-  const [viewMode, setViewMode] = useState<"galaxy" | "grid">(() =>
-    (localStorage.getItem("orbit_view") as "galaxy" | "grid") || "galaxy"
-  );
+  const [viewMode, setViewMode] = useState<"galaxy" | "grid">(() => {
+    if (window.innerWidth <= 768) return "grid";
+    return (localStorage.getItem("orbit_view") as "galaxy" | "grid") || "galaxy";
+  });
 
   const toggleView = () => setViewMode(m => {
     const next = m === "galaxy" ? "grid" : "galaxy";

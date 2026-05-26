@@ -89,3 +89,13 @@
 .finance-contribute-confirm-btn:hover {
   opacity: 0.88;
 }
+
+@media (max-width: 768px) {
+  .finance-goals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .finance-goal-card-actions {
+    opacity: 1;
+  }
+}

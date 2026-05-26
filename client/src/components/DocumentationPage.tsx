@@ -64,6 +64,11 @@ export default function DocumentationPage() {
 
   return (
     <div className="doc-layout">
+      <div className="mobile-block">
+        <span>🖥️</span>
+        <strong>Open on desktop</strong>
+        <p>The knowledge base requires a larger screen.</p>
+      </div>
       <aside className="doc-sidebar">
         <div className="doc-sidebar-top">
           <h3 className="doc-sidebar-title">Knowledge Base</h3>

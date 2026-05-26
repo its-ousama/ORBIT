@@ -120,6 +120,11 @@ export default function BoardsPage() {
 
   return (
     <div className="boards-page">
+      <div className="mobile-block">
+        <span>🖥️</span>
+        <strong>Open on desktop</strong>
+        <p>Boards requires a larger screen.</p>
+      </div>
       <div className="boards-header">
         <div>
           <h2 className="boards-title">Boards</h2>

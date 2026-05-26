@@ -3,7 +3,7 @@ import {
   getPendingRecurring, createTransaction, skipRecurring,
   getCategorySpending, getGoals, getMonthlySummary, getTransactions
 } from "../financeAPI";
-import type { FinanceRecurring, FinanceCategorySpending, FinanceGoal, FinanceMonthlySummary } from "../types";
+
 import "./css/FinanceNotifications.css";
 
 interface Props {

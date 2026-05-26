@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const http = axios.create({ baseURL: "http://localhost:3001/api" });
+const http = axios.create({ baseURL: "/api" });
 
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem("orbit_token");
@@ -14,7 +14,7 @@ http.interceptors.response.use(
     const refresh = localStorage.getItem("orbit_refresh");
     if (err.response?.status === 401 && refresh) {
       try {
-        const { data } = await axios.post("http://localhost:3001/api/auth/refresh", {
+        const { data } = await axios.post("/api/auth/refresh", {
           refreshToken: refresh,
         });
         localStorage.setItem("orbit_token", data.accessToken);

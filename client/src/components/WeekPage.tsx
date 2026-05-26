@@ -178,6 +178,11 @@ export default function WeekPage() {
 
   return (
     <div className="week-page">
+      <div className="mobile-block">
+        <span>🖥️</span>
+        <strong>Open on desktop</strong>
+        <p>The week view requires a larger screen.</p>
+      </div>
       <div className="week-header">
         <div>
           <h2 className="week-title">This Week</h2>
