@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import MobileGate from "./MobileGate";
 import type { Topic } from "../types";
 import { getTopics, deleteTopic } from "../api";
 import TopicView from "./TopicView";
@@ -62,17 +63,16 @@ export default function DocumentationPage({ onGoHome }: { onGoHome?: () => void 
     );
   }
 
+  if (window.innerWidth <= 768) {
+    return <MobileGate icon="🖥️" title="Open on desktop" message="The knowledge base requires a larger screen." onBack={onGoHome} />;
+  }
+
   return (
     <div className="doc-layout">
       <div className="mobile-block">
         <span>🖥️</span>
         <strong>Open on desktop</strong>
         <p>The knowledge base requires a larger screen.</p>
-        {onGoHome && (
-          <button onClick={onGoHome} style={{ marginTop: "1rem", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", color: "#fff", fontSize: "0.875rem", padding: "0.5rem 1.25rem", cursor: "pointer" }}>
-            ← Home
-          </button>
-        )}
       </div>
       <aside className="doc-sidebar">
         <div className="doc-sidebar-top">
