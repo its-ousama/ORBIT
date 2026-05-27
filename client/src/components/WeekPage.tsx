@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import MobileGate from "./MobileGate";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import http from "../http";
@@ -176,17 +177,16 @@ export default function WeekPage({ onGoHome }: { onGoHome?: () => void }) {
 
   const isToday = (date: dayjs.Dayjs) => date.format("YYYY-MM-DD") === today;
 
+  if (window.innerWidth <= 768) {
+    return <MobileGate icon="🖥️" title="Open on desktop" message="The week view requires a larger screen." onBack={onGoHome} />;
+  }
+
   return (
     <div className="week-page">
       <div className="mobile-block">
         <span>🖥️</span>
         <strong>Open on desktop</strong>
         <p>The week view requires a larger screen.</p>
-        {onGoHome && (
-          <button onClick={onGoHome} style={{ marginTop: "1rem", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", color: "#fff", fontSize: "0.875rem", padding: "0.5rem 1.25rem", cursor: "pointer" }}>
-            ← Home
-          </button>
-        )}
       </div>
       <div className="week-header">
         <div>

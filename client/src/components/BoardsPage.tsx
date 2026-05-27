@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import MobileGate from "./MobileGate";
 import http from "../http";
 import dayjs from "dayjs";
 import "./css/BoardsPage.css";
@@ -78,6 +79,10 @@ export default function BoardsPage({ onGoHome }: { onGoHome?: () => void }) {
     }, 2000);
   }, [activeBoard]);
 
+  if (window.innerWidth <= 768) {
+    return <MobileGate icon="🖥️" title="Open on desktop" message="Boards requires a larger screen." onBack={onGoHome} />;
+  }
+
   if (activeBoard) {
     return (
       <div className="board-view">
@@ -124,11 +129,6 @@ export default function BoardsPage({ onGoHome }: { onGoHome?: () => void }) {
         <span>🖥️</span>
         <strong>Open on desktop</strong>
         <p>Boards requires a larger screen.</p>
-        {onGoHome && (
-          <button onClick={onGoHome} style={{ marginTop: "1rem", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", color: "#fff", fontSize: "0.875rem", padding: "0.5rem 1.25rem", cursor: "pointer" }}>
-            ← Home
-          </button>
-        )}
       </div>
       <div className="boards-header">
         <div>
