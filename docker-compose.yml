@@ -23,13 +23,19 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    build:
+     context: ./server
+     dockerfile: Dockerfile
   web:
-    image: ghcr.io/its-ousama/orbit-web:latest
     ports:
       - "80:80"
     depends_on:
       - api
     restart: unless-stopped
+
+    build:
+     context: ./client
+     dockerfile: Dockerfile
 
   tunnel:
     image: cloudflare/cloudflared:latest
