@@ -17,7 +17,8 @@ export type AppDestination =
   | { app: "finance"; section: "transactions" }
   | { app: "tasks"; date: string }
   | { app: "week" }
-  | { app: "journal" };
+  | { app: "journal" }
+  | { app: "books" };
 
 export interface AppNotification {
   id: string;
@@ -274,6 +275,25 @@ export default function NotificationsPage({ onNavigate }: Props) {
             destination: { app: "week" },
           });
         }
+      }
+    } catch {}
+
+    // ── Books notifications ─────────────────────────────────────────────────
+    try {
+      const booksRes = await http.get("/books");
+      const count = booksRes.data?.length ?? 0;
+      if (count >= 8) {
+        notifs.push({
+          id: "books-library-near-full",
+          app: "Books",
+          appIcon: "📚",
+          appColor: "#a78bfa",
+          title: `Library almost full (${count}/10)`,
+          body: "Delete a book before you can add more.",
+          priority: count >= 10 ? "high" : "medium",
+          timestamp: Date.now() - 800,
+          destination: { app: "books" },
+        });
       }
     } catch {}
 

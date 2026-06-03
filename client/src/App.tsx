@@ -8,6 +8,7 @@ import BoardsPage from "./components/BoardsPage";
 import WeekPage from "./components/WeekPage";
 import JournalPage from "./components/JournalPage";
 import FinancePage from "./components/FinancePage";
+import BooksPage from "./components/BooksPage";
 import GalaxyHome from "./components/GalaxyHome";
 import HomePage from "./components/HomePage";
 import HomeButton from "./components/HomeButton";
@@ -17,7 +18,7 @@ import GalaxyGatePage from "./components/GalaxyGatePage";
 import { getPendingRecurring, getCategorySpending, getTransactions } from "./financeAPI";
 import "./App.css";
 
-export type Page = "home" | "tasks" | "calendar" | "documentation" | "boards" | "week" | "journal" | "finance" | "notifications" | "galaxy-gate";
+export type Page = "home" | "tasks" | "calendar" | "documentation" | "boards" | "week" | "journal" | "finance" | "notifications" | "galaxy-gate" | "books";
 
 interface AuthUser { id: number; email: string; username: string; }
 
@@ -82,13 +83,14 @@ export default function App() {
     let count = 0;
 
     try {
-      const [pending, spending, goals, txs, tasksRes, scheduleRes] = await Promise.all([
+      const [pending, spending, goals, txs, tasksRes, scheduleRes, booksRes] = await Promise.all([
         getPendingRecurring(currentMonth),
         getCategorySpending(currentMonth),
         (await import("./financeAPI")).getGoals(),
         getTransactions(currentMonth),
         http.get("/tasks"),
         http.get("/schedule", { params: { start: today, end: today } }),
+        http.get("/books").catch(() => ({ data: [] })),
       ]);
 
       const ids: string[] = [];
@@ -115,6 +117,8 @@ export default function App() {
       if (todayHigh.length > 0) ids.push(`today-high-${today}`);
 
       if (scheduleRes.data.length > 0) ids.push(`today-events-${today}`);
+
+      if ((booksRes.data?.length ?? 0) >= 8) ids.push(`books-library-near-full`);
 
       count = ids.filter(id => !dismissed.includes(id)).length;
     } catch {}
@@ -144,6 +148,8 @@ export default function App() {
       setPage("week");
     } else if (app === "journal") {
       setPage("journal");
+    } else if (app === "books") {
+      setPage("books");
     }
   };
 
@@ -172,6 +178,7 @@ export default function App() {
       {page === "journal" && <JournalPage />}
       {page === "finance" && <FinancePage initialSection={financeSection} />}
       {page === "notifications" && <NotificationsPage onNavigate={handleNotifNavigate} />}
+      {page === "books" && <BooksPage />}
     </div>
   );
 }

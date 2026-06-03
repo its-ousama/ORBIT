@@ -9,6 +9,7 @@ import boardRoutes from "./routes/boards";
 import scheduleRoutes from "./routes/schedule";
 import journalRoutes from "./routes/journals";
 import financeRoutes from "./routes/finance";
+import booksRoutes from "./routes/books";
 import authRoutes from "./routes/auth";
 import { requireAuth } from "./middleware/auth";
 
@@ -25,6 +26,7 @@ app.use("/api/boards", requireAuth, boardRoutes);
 app.use("/api/schedule", requireAuth, scheduleRoutes);
 app.use("/api/journals", requireAuth, journalRoutes);
 app.use("/api/finance", requireAuth, financeRoutes);
+app.use("/api/books", requireAuth, booksRoutes);
 
 const PORT = process.env.PORT || 3001;
 
@@ -221,6 +223,52 @@ const initDb = async () => {
     }
     console.log(`Default user created: ${email} (id=${userId}), all existing data migrated.`);
   }
+
+  // ── Books tables ─────────────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS books (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      title TEXT NOT NULL,
+      author TEXT DEFAULT '',
+      cover_image BYTEA,
+      epub_data BYTEA NOT NULL,
+      file_size INTEGER DEFAULT 0,
+      source TEXT NOT NULL DEFAULT 'epub',
+      gutenberg_id TEXT,
+      added_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS book_progress (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      book_id INTEGER REFERENCES books(id) ON DELETE CASCADE,
+      current_location TEXT DEFAULT '',
+      percent_complete INTEGER DEFAULT 0,
+      last_read_at TIMESTAMP DEFAULT NOW(),
+      finished_at TIMESTAMP,
+      UNIQUE(user_id, book_id)
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS book_history (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      book_id INTEGER REFERENCES books(id) ON DELETE SET NULL,
+      title TEXT NOT NULL,
+      author TEXT DEFAULT '',
+      source TEXT NOT NULL DEFAULT 'epub',
+      finished_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    ALTER TABLE books ADD COLUMN IF NOT EXISTS format VARCHAR(10) DEFAULT 'epub'
+  `);
+  await pool.query(`
+    ALTER TABLE book_history ADD COLUMN IF NOT EXISTS gutenberg_id TEXT
+  `);
 
   console.log("Database ready");
 };
