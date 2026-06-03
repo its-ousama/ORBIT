@@ -23,9 +23,9 @@ const apps: AppCard[] = [
   { page: "tasks",         label: "Tasks",         icon: tasksIcon,    color: "#6366f1", gradient: "linear-gradient(135deg, #1e1b4b, #312e81)" },
   { page: "week",          label: "This Week",     icon: weekIcon,     color: "#3b82f6", gradient: "linear-gradient(135deg, #1e3a5f, #1e40af)" },
   { page: "calendar",      label: "Calendar",      icon: calendarIcon, color: "#10b981", gradient: "linear-gradient(135deg, #064e3b, #065f46)" },
-  { page: "documentation", label: "Knowledge",     icon: databaseIcon, color: "#f59e0b", gradient: "linear-gradient(135deg, #451a03, #78350f)" },
+  { page: "books",          label: "Books",         icon: bookIcon,     color: "#a78bfa", gradient: "linear-gradient(135deg, #2e1065, #4c1d95)" },
   { page: "boards",        label: "Boards",        icon: boardsIcon,   color: "#ec4899", gradient: "linear-gradient(135deg, #500724, #831843)" },
-  { page: "journal",       label: "Settings",      icon: bookIcon,     color: "#64748b", gradient: "linear-gradient(135deg, #0f172a, #1e293b)" },
+  { page: "journal",       label: "Journal",       icon: "📔",         color: "#64748b", gradient: "linear-gradient(135deg, #0f172a, #1e293b)" },
   { page: "finance",       label: "Finance",       icon: bankIcon,     color: "#10b981", gradient: "linear-gradient(135deg, #064e3b, #1e40af)" },
   { page: "notifications", label: "Notifications", icon: "🔔",         color: "#f97316", gradient: "linear-gradient(135deg, #f97316, #ef4444)" },
 ];

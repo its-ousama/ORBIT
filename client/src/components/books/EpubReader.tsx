@@ -1,0 +1,209 @@
+import { useEffect, useRef, useState } from "react";
+import http from "../../http";
+import { updateProgress } from "../../booksAPI";
+import "./EpubReader.css";
+
+interface Props {
+  bookId: number;
+  initialLocation?: string;
+  onProgress: (location: string, percent: number) => void;
+  onClose: () => void;
+}
+
+type FontSize = "small" | "medium" | "large";
+
+const FONT_SIZES: Record<FontSize, string> = {
+  small: "85%",
+  medium: "110%",
+  large: "140%",
+};
+
+export default function EpubReader({ bookId, initialLocation, onProgress, onClose }: Props) {
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const bookRef = useRef<any>(null);
+  const renditionRef = useRef<any>(null);
+
+  const [fontSize, setFontSize] = useState<FontSize>("medium");
+  const [darkMode, setDarkMode] = useState(false);
+  const [showToc, setShowToc] = useState(false);
+  const [toc, setToc] = useState<Array<{ label: string; href: string }>>([]);
+  const [percent, setPercent] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let destroyed = false;
+
+    const load = async () => {
+      try {
+        const res = await http.get(`/books/${bookId}/file`, { responseType: "arraybuffer" });
+        if (destroyed) return;
+
+        // Dynamic import so epubjs (browser-only) doesn't affect SSR / Vite chunking at module parse time
+        const Epub = (await import("epubjs")).default;
+        const book = new Epub(res.data as ArrayBuffer);
+        bookRef.current = book;
+
+        await book.ready;
+        if (destroyed) return;
+
+        const rendition = book.renderTo(viewerRef.current!, {
+          width: "100%",
+          height: "100%",
+          flow: "paginated",
+          spread: "none",
+        });
+        renditionRef.current = rendition;
+
+        rendition.themes.register("light", {
+          body: {
+            background: "#f8f7f2 !important",
+            color: "#1a1a1a !important",
+            "font-family": "Georgia, 'Times New Roman', serif !important",
+            "line-height": "1.7 !important",
+          },
+        });
+        rendition.themes.register("dark", {
+          body: {
+            background: "#111827 !important",
+            color: "#d1d5db !important",
+            "font-family": "Georgia, 'Times New Roman', serif !important",
+            "line-height": "1.7 !important",
+          },
+          "a, a:visited": { color: "#818cf8 !important" },
+        });
+        rendition.themes.select("light");
+        rendition.themes.fontSize(FONT_SIZES.medium);
+
+        rendition.on("relocated", (location: any) => {
+          const cfi = location?.start?.cfi ?? "";
+          const pct = Math.floor((location?.start?.percentage ?? 0) * 100);
+          setPercent(pct);
+          onProgress(cfi, pct);
+          if (cfi) updateProgress(bookId, cfi, pct).catch(() => {});
+        });
+
+        if (initialLocation) {
+          await rendition.display(initialLocation);
+        } else {
+          await rendition.display();
+        }
+
+        const nav = await book.loaded.navigation;
+        setToc((nav?.toc ?? []).map((item: any) => ({ label: item.label?.trim() ?? "", href: item.href })));
+        setLoading(false);
+      } catch {
+        if (!destroyed) {
+          setError("Failed to load book. The file may be corrupted or unsupported.");
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      destroyed = true;
+      if (bookRef.current) {
+        try { bookRef.current.destroy(); } catch { /* ignore */ }
+        bookRef.current = null;
+      }
+    };
+  }, [bookId]);
+
+  // Apply theme / font size changes after load
+  useEffect(() => {
+    renditionRef.current?.themes.select(darkMode ? "dark" : "light");
+  }, [darkMode]);
+
+  useEffect(() => {
+    renditionRef.current?.themes.fontSize(FONT_SIZES[fontSize]);
+  }, [fontSize]);
+
+  // Keyboard nav
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === "PageDown") renditionRef.current?.next();
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") renditionRef.current?.prev();
+      else if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const goToChapter = (href: string) => {
+    renditionRef.current?.display(href);
+    setShowToc(false);
+  };
+
+  return (
+    <div className={`epub-reader ${darkMode ? "epub-dark" : "epub-light"}`}>
+      {/* Top bar */}
+      <div className="epub-topbar">
+        <button className="epub-topbar-btn" onClick={onClose}>← Back</button>
+
+        <div className="epub-topbar-controls">
+          <button className="epub-topbar-btn" onClick={() => setShowToc(t => !t)}>
+            ☰ Chapters
+          </button>
+          <div className="epub-font-group">
+            {(["small", "medium", "large"] as FontSize[]).map(s => (
+              <button
+                key={s}
+                className={`epub-font-btn ${fontSize === s ? "active" : ""}`}
+                onClick={() => setFontSize(s)}
+                title={`Font: ${s}`}
+                style={{ fontSize: s === "small" ? "11px" : s === "medium" ? "14px" : "18px" }}
+              >
+                A
+              </button>
+            ))}
+          </div>
+          <button
+            className="epub-topbar-btn"
+            onClick={() => setDarkMode(d => !d)}
+            title="Toggle theme"
+          >
+            {darkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
+        </div>
+      </div>
+
+      {/* TOC sidebar */}
+      {showToc && (
+        <div className="epub-toc">
+          <div className="epub-toc-title">Chapters</div>
+          <div className="epub-toc-scroll">
+            {toc.length === 0 && <p className="epub-toc-empty">No chapters found</p>}
+            {toc.map((item, i) => (
+              <button key={i} className="epub-toc-item" onClick={() => goToChapter(item.href)}>
+                {item.label || `Chapter ${i + 1}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Reader area */}
+      <div className="epub-main">
+        <button className="epub-nav-btn epub-nav-prev" onClick={() => renditionRef.current?.prev()}>‹</button>
+
+        <div className="epub-viewer-wrap">
+          {loading && <div className="epub-loading">Loading book…</div>}
+          {error && <div className="epub-error">{error}</div>}
+          <div ref={viewerRef} className="epub-viewer" />
+        </div>
+
+        <button className="epub-nav-btn epub-nav-next" onClick={() => renditionRef.current?.next()}>›</button>
+      </div>
+
+      {/* Progress bar */}
+      <div className="epub-footer">
+        <div className="epub-progress-track">
+          <div className="epub-progress-fill" style={{ width: `${percent}%` }} />
+        </div>
+        <span className="epub-progress-label">{percent}%</span>
+      </div>
+    </div>
+  );
+}
