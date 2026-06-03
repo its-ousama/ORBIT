@@ -263,6 +263,13 @@ const initDb = async () => {
     )
   `);
 
+  await pool.query(`
+    ALTER TABLE books ADD COLUMN IF NOT EXISTS format VARCHAR(10) DEFAULT 'epub'
+  `);
+  await pool.query(`
+    ALTER TABLE book_history ADD COLUMN IF NOT EXISTS gutenberg_id TEXT
+  `);
+
   console.log("Database ready");
 };
 

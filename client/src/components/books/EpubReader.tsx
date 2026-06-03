@@ -23,7 +23,9 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
   const bookRef = useRef<any>(null);
   const renditionRef = useRef<any>(null);
 
-  const [fontSize, setFontSize] = useState<FontSize>("medium");
+  const [fontSize, setFontSize] = useState<FontSize>(
+    () => (localStorage.getItem("epub_font_size") as FontSize) || "medium"
+  );
   const [darkMode, setDarkMode] = useState(false);
   const [showToc, setShowToc] = useState(false);
   const [toc, setToc] = useState<Array<{ label: string; href: string }>>([]);
@@ -33,6 +35,8 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
 
   useEffect(() => {
     let destroyed = false;
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastProgress: { cfi: string; pct: number } | null = null;
 
     const load = async () => {
       try {
@@ -41,7 +45,7 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
 
         // Dynamic import so epubjs (browser-only) doesn't affect SSR / Vite chunking at module parse time
         const Epub = (await import("epubjs")).default;
-        const book = new Epub(res.data as ArrayBuffer);
+        const book = Epub(res.data as ArrayBuffer);
         bookRef.current = book;
 
         await book.ready;
@@ -73,14 +77,34 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
           "a, a:visited": { color: "#818cf8 !important" },
         });
         rendition.themes.select("light");
-        rendition.themes.fontSize(FONT_SIZES.medium);
+        // Use saved font size so preference is applied immediately on load
+        rendition.themes.fontSize(FONT_SIZES[fontSize]);
+
+        // Guard: don't save progress during initial display — epubjs snaps CFI to page
+        // start which differs slightly from the stored CFI, causing drift each session.
+        // Also debounce saves so rapid page turns don't send out-of-order HTTP requests.
+        let initialDisplayDone = false;
 
         rendition.on("relocated", (location: any) => {
           const cfi = location?.start?.cfi ?? "";
-          const pct = Math.floor((location?.start?.percentage ?? 0) * 100);
+          // percentageFromCfi is accurate once locations are generated; fall back to epubjs value
+          const raw = book.locations?.percentageFromCfi
+            ? (book.locations.percentageFromCfi(cfi) ?? location?.start?.percentage ?? 0)
+            : (location?.start?.percentage ?? 0);
+          const pct = Math.min(100, Math.floor(raw * 100));
           setPercent(pct);
-          onProgress(cfi, pct);
-          if (cfi) updateProgress(bookId, cfi, pct).catch(() => {});
+          // Don't call onProgress during initial display — epubjs returns 0 before locations
+          // are generated, which would overwrite the real server-stored percentage in the card
+          if (initialDisplayDone) {
+            onProgress(cfi, pct);
+            if (cfi) {
+              lastProgress = { cfi, pct };
+              if (saveTimer) clearTimeout(saveTimer);
+              saveTimer = setTimeout(() => {
+                if (!destroyed) updateProgress(bookId, cfi, pct).catch(() => {});
+              }, 800);
+            }
+          }
         });
 
         if (initialLocation) {
@@ -88,6 +112,11 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
         } else {
           await rendition.display();
         }
+        initialDisplayDone = true;
+
+        // Generate locations in background so percentage works on page turns
+        // 1024 = chars per "location" — standard epubjs default
+        book.locations.generate(1024).catch(() => {});
 
         const nav = await book.loaded.navigation;
         setToc((nav?.toc ?? []).map((item: any) => ({ label: item.label?.trim() ?? "", href: item.href })));
@@ -104,6 +133,11 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
 
     return () => {
       destroyed = true;
+      // Flush any pending debounced save immediately so the last position isn't lost on close
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+        if (lastProgress) updateProgress(bookId, lastProgress.cfi, lastProgress.pct).catch(() => {});
+      }
       if (bookRef.current) {
         try { bookRef.current.destroy(); } catch { /* ignore */ }
         bookRef.current = null;
@@ -151,7 +185,7 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
               <button
                 key={s}
                 className={`epub-font-btn ${fontSize === s ? "active" : ""}`}
-                onClick={() => setFontSize(s)}
+                onClick={() => { setFontSize(s); localStorage.setItem("epub_font_size", s); }}
                 title={`Font: ${s}`}
                 style={{ fontSize: s === "small" ? "11px" : s === "medium" ? "14px" : "18px" }}
               >

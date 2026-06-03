@@ -6,6 +6,7 @@ export interface Book {
   author: string;
   file_size: number;
   source: "epub" | "gutenberg";
+  format: "epub" | "pdf";
   gutenberg_id: string | null;
   has_cover: boolean;
   current_location: string | null;
@@ -21,6 +22,7 @@ export interface BookHistoryEntry {
   title: string;
   author: string;
   source: "epub" | "gutenberg";
+  gutenberg_id: string | null;
   finished_at: string;
 }
 
@@ -49,8 +51,22 @@ export const updateProgress = (id: number, current_location: string, percent_com
 export const getHistory = () =>
   http.get<BookHistoryEntry[]>("/books/history").then(r => r.data);
 
-export const searchGutenberg = (q: string) =>
-  http.get<{ count: number; results: GutenbergBook[] }>("/books/gutenberg/search", { params: { q } }).then(r => r.data);
+export const rereadBook = (historyId: number) =>
+  http.post<Book>(`/books/history/${historyId}/reread`).then(r => r.data);
 
-export const downloadFromGutenberg = (gutenbergId: number) =>
-  http.get<Book>(`/books/gutenberg/${gutenbergId}/download`).then(r => r.data);
+export const searchGutenberg = async (q: string): Promise<{ count: number; results: GutenbergBook[] }> => {
+  const res = await fetch(`https://gutendex.com/books/?search=${encodeURIComponent(q)}`, {
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!res.ok) throw new Error(`Gutenberg error ${res.status}`);
+  return res.json();
+};
+
+export const downloadFromGutenberg = (
+  gutenbergId: number,
+  downloadUrl: string,
+  coverUrl: string | null,
+  title: string,
+  author: string,
+) =>
+  http.post<Book>("/books/gutenberg/save", { gutenberg_id: gutenbergId, download_url: downloadUrl, cover_url: coverUrl, title, author }).then(r => r.data);

@@ -221,6 +221,22 @@
   flex-shrink: 0;
 }
 
+/* ── PDF viewer ── */
+.pdf-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  min-height: 0;
+}
+
+.epub-topbar-format-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0.4;
+  text-transform: uppercase;
+}
+
 /* ── Mobile ── */
 @media (max-width: 768px) {
   .epub-toc { width: 100%; right: 0; }

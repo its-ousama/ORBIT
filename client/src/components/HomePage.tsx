@@ -5,7 +5,6 @@ import bankIcon from "../assets/icons8-investement-96.png";
 import boardsIcon from "../assets/icons8-boards-96.png";
 import bookIcon from "../assets/icons8-book-96.png";
 import calendarIcon from "../assets/icons8-calendar-96.png";
-import databaseIcon from "../assets/icons8-database-view-96.png";
 import tasksIcon from "../assets/icons8-tasks-96.png";
 import weekIcon from "../assets/icons8-week-view-96.png";
 

@@ -1,7 +1,6 @@
 import { Router, Response } from "express";
 import multer from "multer";
 import JSZip from "jszip";
-import axios from "axios";
 import pool from "../db";
 import { AuthRequest } from "../middleware/auth";
 
@@ -69,7 +68,7 @@ async function extractMetadata(buffer: Buffer): Promise<{ title: string; author:
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
     const { rows } = await pool.query(
-      `SELECT b.id, b.title, b.author, b.file_size, b.source, b.gutenberg_id, b.added_at,
+      `SELECT b.id, b.title, b.author, b.file_size, b.source, b.format, b.gutenberg_id, b.added_at,
         (b.cover_image IS NOT NULL) AS has_cover,
         bp.current_location, COALESCE(bp.percent_complete, 0) AS percent_complete,
         bp.last_read_at, bp.finished_at
@@ -98,15 +97,70 @@ router.get("/history", async (req: AuthRequest, res: Response) => {
   }
 });
 
-// GET /gutenberg/search?q=
-router.get("/gutenberg/search", async (req: AuthRequest, res: Response) => {
-  const q = (req.query.q as string) || "";
-  if (!q.trim()) return res.json({ count: 0, results: [] });
+
+// POST /history/:id/reread — re-download a finished Gutenberg book into the library
+router.post("/history/:id/reread", async (req: AuthRequest, res: Response) => {
+  const historyId = parseInt(String(req.params.id), 10);
   try {
-    const { data } = await axios.get(`https://gutendex.com/books/?search=${encodeURIComponent(q)}`, { timeout: 10000 });
-    res.json(data);
+    const { rows } = await pool.query(
+      "SELECT * FROM book_history WHERE id = $1 AND user_id = $2",
+      [historyId, req.userId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: "History entry not found" });
+
+    const entry = rows[0];
+    if (entry.source !== "gutenberg" || !entry.gutenberg_id) {
+      return res.status(400).json({ error: "user_upload" });
+    }
+
+    const count = await countBooks(req.userId!);
+    if (count >= BOOK_LIMIT) {
+      return res.status(400).json({ error: `Library full. Maximum ${BOOK_LIMIT} books allowed.` });
+    }
+
+    const already = await pool.query(
+      "SELECT id FROM books WHERE user_id = $1 AND gutenberg_id = $2",
+      [req.userId, entry.gutenberg_id]
+    );
+    if (already.rows.length > 0) {
+      return res.status(400).json({ error: "Already in library" });
+    }
+
+    const gutendexRes = await fetch(`https://gutendex.com/books/${entry.gutenberg_id}`, {
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!gutendexRes.ok) throw new Error(`Gutendex ${gutendexRes.status}`);
+    const gbData: any = await gutendexRes.json();
+
+    const downloadUrl: string | undefined =
+      gbData.formats?.["application/epub+zip"] ||
+      gbData.formats?.["text/plain"] ||
+      gbData.formats?.["text/plain; charset=utf-8"];
+    if (!downloadUrl) return res.status(400).json({ error: "No downloadable EPUB available for this book." });
+
+    const coverUrl: string | null = gbData.formats?.["image/jpeg"] ?? null;
+
+    const fileR = await fetch(downloadUrl, { signal: AbortSignal.timeout(30000) });
+    if (!fileR.ok) throw new Error(`Download HTTP ${fileR.status}`);
+    const buffer = Buffer.from(await fileR.arrayBuffer());
+
+    let coverBuffer: Buffer | null = await extractCover(buffer);
+    if (!coverBuffer && coverUrl) {
+      try {
+        const imgR = await fetch(coverUrl, { signal: AbortSignal.timeout(10000) });
+        if (imgR.ok) coverBuffer = Buffer.from(await imgR.arrayBuffer());
+      } catch { /* no cover */ }
+    }
+
+    const { rows: bookRows } = await pool.query(
+      `INSERT INTO books (user_id, title, author, cover_image, epub_data, file_size, source, gutenberg_id, format)
+       VALUES ($1, $2, $3, $4, $5, $6, 'gutenberg', $7, 'epub')
+       RETURNING id, title, author, file_size, source, format, gutenberg_id, added_at`,
+      [req.userId, entry.title, entry.author, coverBuffer, buffer, buffer.length, entry.gutenberg_id]
+    );
+    res.json(bookRows[0]);
   } catch {
-    res.status(500).json({ error: "Gutenberg search failed" });
+    res.status(500).json({ error: "Failed to re-download book. Try again." });
   }
 });
 
@@ -120,13 +174,24 @@ router.post("/upload", upload.single("epub"), async (req: AuthRequest, res: Resp
     if (!req.file) return res.status(400).json({ error: "No file provided" });
 
     const buffer = req.file.buffer;
-    const [meta, cover] = await Promise.all([extractMetadata(buffer), extractCover(buffer)]);
+    const isPdf = req.file.mimetype === "application/pdf"
+      || req.file.originalname.toLowerCase().endsWith(".pdf");
+    const format = isPdf ? "pdf" : "epub";
+
+    let meta = { title: "Unknown", author: "" };
+    let cover: Buffer | null = null;
+
+    if (isPdf) {
+      meta.title = req.file.originalname.replace(/\.pdf$/i, "");
+    } else {
+      [meta, cover] = await Promise.all([extractMetadata(buffer), extractCover(buffer)]);
+    }
 
     const { rows } = await pool.query(
-      `INSERT INTO books (user_id, title, author, cover_image, epub_data, file_size, source)
-       VALUES ($1, $2, $3, $4, $5, $6, 'epub')
-       RETURNING id, title, author, file_size, source, added_at`,
-      [req.userId, meta.title, meta.author, cover, buffer, buffer.length]
+      `INSERT INTO books (user_id, title, author, cover_image, epub_data, file_size, source, format)
+       VALUES ($1, $2, $3, $4, $5, $6, 'epub', $7)
+       RETURNING id, title, author, file_size, source, format, added_at`,
+      [req.userId, meta.title, meta.author, cover, buffer, buffer.length, format]
     );
     res.json(rows[0]);
   } catch {
@@ -159,16 +224,21 @@ router.get("/:id/cover", async (req: AuthRequest, res: Response) => {
   }
 });
 
-// GET /:id/file — streams epub bytes
+// GET /:id/file — streams book bytes with correct MIME type per format
 router.get("/:id/file", async (req: AuthRequest, res: Response) => {
   try {
     const { rows } = await pool.query(
-      "SELECT epub_data, title FROM books WHERE id = $1 AND user_id = $2",
+      "SELECT epub_data, title, format FROM books WHERE id = $1 AND user_id = $2",
       [String(req.params.id), req.userId]
     );
     if (!rows[0]) return res.status(404).json({ error: "Book not found" });
-    res.setHeader("Content-Type", "application/epub+zip");
-    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(rows[0].title)}.epub"`);
+    const isPdf = rows[0].format === "pdf";
+    res.setHeader("Content-Type", isPdf ? "application/pdf" : "application/epub+zip");
+    // PDFs use inline so the browser can render them; EPUBs are attachment since epubjs fetches them via XHR
+    res.setHeader(
+      "Content-Disposition",
+      `${isPdf ? "inline" : "attachment"}; filename="${encodeURIComponent(rows[0].title)}.${isPdf ? "pdf" : "epub"}"`
+    );
     res.send(rows[0].epub_data);
   } catch {
     res.status(500).json({ error: "Failed to stream file" });
@@ -205,19 +275,21 @@ router.put("/:id/progress", async (req: AuthRequest, res: Response) => {
       [req.userId, bookId, current_location, percent_complete, finishedAt]
     );
 
-    // Record history only on first finish
+    // Record history and free library slot on first finish
     if (isNowFinished && !wasAlreadyFinished) {
       const bookRes = await pool.query(
-        "SELECT title, author, source FROM books WHERE id = $1",
+        "SELECT title, author, source, gutenberg_id FROM books WHERE id = $1",
         [bookId]
       );
       if (bookRes.rows[0]) {
-        const { title, author, source } = bookRes.rows[0];
+        const { title, author, source, gutenberg_id } = bookRes.rows[0];
         await pool.query(
-          `INSERT INTO book_history (user_id, book_id, title, author, source, finished_at)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [req.userId, bookId, title, author, source, finishedAt]
+          `INSERT INTO book_history (user_id, book_id, title, author, source, gutenberg_id, finished_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [req.userId, bookId, title, author, source, gutenberg_id, finishedAt]
         );
+        // Auto-delete from library — history preserves metadata, slot is freed
+        await pool.query("DELETE FROM books WHERE id = $1", [bookId]);
       }
     }
 
@@ -227,9 +299,11 @@ router.put("/:id/progress", async (req: AuthRequest, res: Response) => {
   }
 });
 
-// GET /gutenberg/:gutenberg_id/download
-router.get("/gutenberg/:gutenberg_id/download", async (req: AuthRequest, res: Response) => {
-  const gutenbergId = String(req.params.gutenberg_id);
+// POST /gutenberg/save — client already resolved the URLs from gutendex, server just downloads + stores
+router.post("/gutenberg/save", async (req: AuthRequest, res: Response) => {
+  const { gutenberg_id, download_url, cover_url, title, author } = req.body;
+
+  if (!download_url) return res.status(400).json({ error: "No download URL provided" });
 
   try {
     const count = await countBooks(req.userId!);
@@ -239,54 +313,36 @@ router.get("/gutenberg/:gutenberg_id/download", async (req: AuthRequest, res: Re
 
     const already = await pool.query(
       "SELECT id FROM books WHERE user_id = $1 AND gutenberg_id = $2",
-      [req.userId, gutenbergId]
+      [req.userId, String(gutenberg_id)]
     );
     if (already.rows.length > 0) {
       return res.status(400).json({ error: "Already in library" });
     }
 
-    // Fetch metadata from Gutendex
-    const { data: bookData } = await axios.get(`https://gutendex.com/books/${gutenbergId}`, { timeout: 10000 });
-    const title: string = bookData.title || "Unknown";
-    const author: string = bookData.authors?.[0]?.name || "";
-    const formats: Record<string, string> = bookData.formats || {};
+    const fileR = await fetch(download_url, { signal: AbortSignal.timeout(30000) });
+    if (!fileR.ok) throw new Error(`HTTP ${fileR.status}`);
+    const buffer = Buffer.from(await fileR.arrayBuffer());
 
-    const epubUrl = formats["application/epub+zip"];
-    const textUrl = formats["text/plain"] || formats["text/plain; charset=utf-8"];
-    const downloadUrl = epubUrl || textUrl;
-
-    if (!downloadUrl) {
-      return res.status(400).json({ error: "No downloadable format available for this book" });
-    }
-
-    const fileRes = await axios.get(downloadUrl, { responseType: "arraybuffer", timeout: 30000 });
-    const buffer = Buffer.from(fileRes.data);
-    const isEpub = !!epubUrl;
-
+    const isEpub = download_url.includes(".epub") || download_url.includes("epub");
     let coverBuffer: Buffer | null = isEpub ? await extractCover(buffer) : null;
 
-    // Fall back to Gutenberg cover image if no embedded cover
-    if (!coverBuffer) {
-      const imgUrl = formats["image/jpeg"];
-      if (imgUrl) {
-        try {
-          const imgRes = await axios.get(imgUrl, { responseType: "arraybuffer", timeout: 10000 });
-          coverBuffer = Buffer.from(imgRes.data);
-        } catch { /* no cover */ }
-      }
+    if (!coverBuffer && cover_url) {
+      try {
+        const imgR = await fetch(cover_url, { signal: AbortSignal.timeout(10000) });
+        if (imgR.ok) coverBuffer = Buffer.from(await imgR.arrayBuffer());
+      } catch { /* no cover */ }
     }
 
     const { rows } = await pool.query(
       `INSERT INTO books (user_id, title, author, cover_image, epub_data, file_size, source, gutenberg_id)
        VALUES ($1, $2, $3, $4, $5, $6, 'gutenberg', $7)
        RETURNING id, title, author, file_size, source, gutenberg_id, added_at`,
-      [req.userId, title, author, coverBuffer, buffer, buffer.length, gutenbergId]
+      [req.userId, title || "Unknown", author || "", coverBuffer, buffer, buffer.length, String(gutenberg_id)]
     );
 
     res.json(rows[0]);
-  } catch (e: any) {
-    const msg = e?.response?.status === 404 ? "Book not found on Gutenberg" : "Download failed";
-    res.status(500).json({ error: msg });
+  } catch {
+    res.status(500).json({ error: "Download failed" });
   }
 });
 
