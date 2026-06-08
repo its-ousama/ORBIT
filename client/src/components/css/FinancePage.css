@@ -109,6 +109,10 @@
 }
 
 @media (max-width: 768px) {
+  .finance-layout {
+    flex-direction: column;
+  }
+
   .finance-sidebar {
     display: none;
   }
@@ -116,9 +120,10 @@
   .finance-mobile-topbar {
     display: flex;
     align-items: center;
-    padding: 0.85rem 1.1rem 0.5rem;
+    padding: 0.75rem 1.1rem;
     border-bottom: 1px solid #f3f4f6;
     background: #fff;
+    flex-shrink: 0;
   }
   .finance-mobile-topbar-title {
     font-size: 1rem;
@@ -127,6 +132,8 @@
   }
 
   .finance-main {
+    flex: 1;
+    overflow-y: auto;
     padding: 1.25rem 1rem;
     padding-bottom: 112px;
   }

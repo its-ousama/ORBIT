@@ -38,8 +38,10 @@ export default function PdfReader({ bookId, onClose }: Props) {
     return clearAutoHide;
   }, [loading, startAutoHide, clearAutoHide]);
 
-  // Mouse movement on desktop: show UI and reset the hide timer
+  // Mouse movement on desktop only — skip on touch devices to avoid synthetic
+  // mousemove events interfering with center-tap toggling.
   useEffect(() => {
+    if ("ontouchstart" in window) return;
     const onMouseMove = () => { setShowUI(true); startAutoHide(); };
     window.addEventListener("mousemove", onMouseMove);
     return () => window.removeEventListener("mousemove", onMouseMove);
@@ -70,10 +72,15 @@ export default function PdfReader({ bookId, onClose }: Props) {
           setTotalPages(pdf.numPages);
         }
 
+        // Batch with setLoading so the canvas container is in the DOM
+        // before the render effect fires (totalPages + blobUrl + loading = false → single render)
         setBlobUrl(url);
+        setLoading(false);
       })
-      .catch(() => setError("Failed to load PDF. The file may be corrupted."))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        setError("Failed to load PDF. The file may be corrupted.");
+        setLoading(false);
+      });
 
     return () => { if (url) URL.revokeObjectURL(url); };
   }, [bookId]);
@@ -106,8 +113,8 @@ export default function PdfReader({ bookId, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (isMobile && totalPages > 0) renderPage(currentPage);
-  }, [currentPage, totalPages, renderPage]);
+    if (isMobile && totalPages > 0 && blobUrl) renderPage(currentPage);
+  }, [currentPage, totalPages, blobUrl, renderPage]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

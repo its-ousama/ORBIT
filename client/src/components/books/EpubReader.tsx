@@ -51,8 +51,11 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
     return clearAutoHide;
   }, [loading, startAutoHide, clearAutoHide]);
 
-  // Mouse movement on desktop: show UI and reset the hide timer
+  // Mouse movement on desktop only: show UI and reset the hide timer.
+  // Skipped on touch devices — touchmove fires synthetic mousemove events
+  // which would conflict with center-tap toggling.
   useEffect(() => {
+    if ("ontouchstart" in window) return;
     const onMouseMove = () => { setShowUI(true); startAutoHide(); };
     window.addEventListener("mousemove", onMouseMove);
     return () => window.removeEventListener("mousemove", onMouseMove);
