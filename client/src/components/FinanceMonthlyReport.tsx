@@ -147,9 +147,16 @@ export default function FinanceMonthlyReport({ initialMonth, currency }: Props) 
           </div>
 
           <div className={`fmr-net-banner ${net >= 0 ? "saved" : "overspent"}`}>
-            {net >= 0
-              ? `You saved ${fmt(net)} this month`
-              : `You overspent by ${fmt(net)} this month`}
+            <span className="fmr-net-main">
+              {net >= 0
+                ? `You saved ${fmt(net)} this month`
+                : `You overspent by ${fmt(Math.abs(net))} this month`}
+            </span>
+            {opening > 0 && (
+              <span className="fmr-net-sub">
+                {fmt(opening)} carried in · total balance {fmt(closing)}
+              </span>
+            )}
           </div>
 
           {/* Spending by category */}
