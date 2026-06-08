@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import {  createCategory, updateCategory, deleteCategory, getCategorySpending, getRecurring, deleteRecurring } from "../financeAPI";
 import type { FinanceCategorySpending, FinanceRecurring } from "../types";
+import { currencySymbol } from "./FinanceSettings";
 import "./css/FinanceBudget.css";
 
 const PRESET_COLORS = ["#6366f1","#ec4899","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ef4444","#14b8a6"];
 const PRESET_ICONS = ["🏠","🍔","🚗","💊","🎮","✈️","👕","📱","💡","🎓","💰","🎁","🐾","🏋️"];
 
-interface Props { currentMonth: string; }
+interface Props { currentMonth: string; currency: string; }
 
-export default function FinanceBudget({ currentMonth }: Props) {
+export default function FinanceBudget({ currentMonth, currency }: Props) {
+  const sym = currencySymbol(currency);
   const [spending, setSpending] = useState<FinanceCategorySpending[]>([]);
   const [recurring, setRecurring] = useState<FinanceRecurring[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -58,7 +60,7 @@ export default function FinanceBudget({ currentMonth }: Props) {
 
   const totalBudget = spending.reduce((a, c) => a + Number(c.monthly_budget), 0);
   const totalSpent = spending.reduce((a, c) => a + Number(c.spent), 0);
-  const fmt = (n: number) => `€${Number(n).toFixed(2)}`;
+  const fmt = (n: number) => `${sym}${Number(n).toFixed(2)}`;
 
   return (
     <div className="finance-budget">
@@ -96,7 +98,7 @@ export default function FinanceBudget({ currentMonth }: Props) {
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Groceries" className="finance-input" />
             </div>
             <div>
-              <label>Monthly Budget (€)</label>
+              <label>Monthly Budget ({sym})</label>
               <input type="number" value={form.monthly_budget} onChange={e => setForm(f => ({ ...f, monthly_budget: e.target.value }))} placeholder="0" className="finance-input" min="0" step="0.01" />
             </div>
           </div>
@@ -188,7 +190,7 @@ export default function FinanceBudget({ currentMonth }: Props) {
                   </span>
                 </div>
                 <span className={`finance-recurring-amount ${r.type}`}>
-                  {r.type === "income" ? "+" : "-"}€{Number(r.amount).toFixed(2)}
+                  {r.type === "income" ? "+" : "-"}{sym}{Number(r.amount).toFixed(2)}
                 </span>
                 <button className="finance-recurring-delete" onClick={() => handleDeleteRecurring(r.id)} title="Stop recurring">🗑</button>
               </div>

@@ -95,6 +95,45 @@ router.post("/config/verify", async (req: AuthRequest, res: Response) => {
   res.json({ success: hashPin(pin) === result.rows[0].pin_hash });
 });
 
+router.get("/config/settings", async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const result = await pool.query(
+    "SELECT currency FROM finance_config WHERE user_id = $1 LIMIT 1",
+    [userId],
+  );
+  if (result.rows.length === 0) return res.status(404).json({ error: "Not configured" });
+  res.json({ currency: result.rows[0].currency || "EUR" });
+});
+
+router.put("/config/currency", async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { currency } = req.body;
+  const allowed = ["EUR", "USD", "GBP", "MAD", "CAD", "CHF", "JPY", "AED", "KWD", "LBP"];
+  if (!allowed.includes(currency)) return res.status(400).json({ error: "Invalid currency" });
+  await pool.query(
+    "UPDATE finance_config SET currency = $1 WHERE user_id = $2",
+    [currency, userId],
+  );
+  res.json({ success: true });
+});
+
+router.put("/config/pin", async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { currentPin, newPin } = req.body;
+  if (!newPin || newPin.length < 4) return res.status(400).json({ error: "New PIN must be at least 4 digits" });
+  const result = await pool.query(
+    "SELECT pin_hash FROM finance_config WHERE user_id = $1 LIMIT 1",
+    [userId],
+  );
+  if (result.rows.length === 0) return res.status(404).json({ error: "Not configured" });
+  if (hashPin(currentPin) !== result.rows[0].pin_hash) return res.status(401).json({ error: "Wrong PIN" });
+  await pool.query(
+    "UPDATE finance_config SET pin_hash = $1 WHERE user_id = $2",
+    [hashPin(newPin), userId],
+  );
+  res.json({ success: true });
+});
+
 // ── Categories ────────────────────────────────────────────────────────────────
 
 router.get("/categories", async (req: AuthRequest, res: Response) => {

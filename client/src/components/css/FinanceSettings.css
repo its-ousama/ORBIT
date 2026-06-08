@@ -1,0 +1,80 @@
+.fsettings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.fsettings-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.fsettings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.fsettings-title { font-size: 1.1rem; font-weight: 700; color: #1a1a1a; }
+.fsettings-close { background: none; border: none; font-size: 1rem; color: #9ca3af; cursor: pointer; padding: 0.25rem; }
+.fsettings-close:hover { color: #1a1a1a; }
+
+.fsettings-section { display: flex; flex-direction: column; gap: 0.75rem; }
+.fsettings-section-title { font-size: 0.78rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin: 0; }
+
+.fsettings-select {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.95rem;
+  outline: none;
+  background: #f9fafb;
+  color: #1a1a1a;
+  width: 100%;
+}
+.fsettings-select:focus { border-color: #6366f1; background: #fff; }
+
+.fsettings-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.fsettings-btn.primary { background: #6366f1; color: #fff; }
+.fsettings-btn.primary:hover:not(:disabled) { background: #4f46e5; }
+.fsettings-btn.primary:disabled { opacity: 0.5; cursor: default; }
+.fsettings-btn.secondary { background: #f3f4f6; color: #374151; }
+.fsettings-btn.secondary:hover { background: #e5e7eb; }
+
+.fsettings-divider { height: 1px; background: #f3f4f6; }
+
+.fsettings-pin-flow { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
+.fsettings-pin-label { font-size: 0.9rem; color: #555; margin: 0; }
+.fsettings-pin-dots { display: flex; gap: 0.6rem; }
+.fsettings-pin-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.fsettings-pin-dot.filled { background: #6366f1; border-color: #6366f1; }
+.fsettings-pin-error { color: #dc2626; font-size: 0.83rem; margin: 0; }
+.fsettings-pin-success { color: #16a34a; font-size: 0.9rem; font-weight: 500; margin: 0; }
+.fsettings-numpad { width: 220px; }
+.fsettings-pin-actions { display: flex; gap: 0.75rem; width: 100%; }
+.fsettings-pin-actions .fsettings-btn { flex: 1; }

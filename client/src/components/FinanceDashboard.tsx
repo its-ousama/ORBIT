@@ -7,11 +7,13 @@ import { getMonthlySummary, getCategorySpending, getTransactions } from "../fina
 import type { FinanceMonthlySummary, FinanceCategorySpending, FinanceTransaction } from "../types";
 import NumberTicker from "./NumberTicker";
 import BlurFade from "./BlurFade";
+import { currencySymbol } from "./FinanceSettings";
 import "./css/FinanceDashboard.css";
 
-interface Props { currentMonth: string; }
+interface Props { currentMonth: string; currency: string; }
 
-export default function FinanceDashboard({ currentMonth }: Props) {
+export default function FinanceDashboard({ currentMonth, currency }: Props) {
+  const sym = currencySymbol(currency);
   const [summary, setSummary] = useState<FinanceMonthlySummary | null>(null);
   const [spending, setSpending] = useState<FinanceCategorySpending[]>([]);
   const [recentTx, setRecentTx] = useState<FinanceTransaction[]>([]);
@@ -57,32 +59,32 @@ export default function FinanceDashboard({ currentMonth }: Props) {
             <span className="finance-stat-label">Carried In</span>
             <span className={`finance-stat-value ${summary && summary.opening_balance < 0 ? "negative" : "positive"}`}>
               {loaded && summary ? (
-                <NumberTicker value={Number(summary.opening_balance)} prefix="€" decimals={2} duration={1800} />
-              ) : "€0.00"}
+                <NumberTicker value={Number(summary.opening_balance)} prefix={sym} decimals={2} duration={1800} />
+              ) : `${sym}0.00`}
             </span>
           </div>
           <div className="finance-stat-card">
             <span className="finance-stat-label">Income</span>
             <span className="finance-stat-value positive">
               {loaded && summary ? (
-                <NumberTicker value={Number(summary.total_income)} prefix="€" decimals={2} duration={1800} />
-              ) : "€0.00"}
+                <NumberTicker value={Number(summary.total_income)} prefix={sym} decimals={2} duration={1800} />
+              ) : `${sym}0.00`}
             </span>
           </div>
           <div className="finance-stat-card">
             <span className="finance-stat-label">Spent</span>
             <span className="finance-stat-value negative">
               {loaded && summary ? (
-                <NumberTicker value={Number(summary.total_expenses)} prefix="€" decimals={2} duration={1800} />
-              ) : "€0.00"}
+                <NumberTicker value={Number(summary.total_expenses)} prefix={sym} decimals={2} duration={1800} />
+              ) : `${sym}0.00`}
             </span>
           </div>
           <div className="finance-stat-card highlight">
             <span className="finance-stat-label">Balance</span>
             <span className={`finance-stat-value ${summary && summary.closing_balance < 0 ? "negative" : "positive"}`}>
               {loaded && summary ? (
-                <NumberTicker value={Number(summary.closing_balance)} prefix="€" decimals={2} duration={2200} />
-              ) : "€0.00"}
+                <NumberTicker value={Number(summary.closing_balance)} prefix={sym} decimals={2} duration={2200} />
+              ) : `${sym}0.00`}
             </span>
           </div>
           {overBudgetCount > 0 && (
@@ -102,8 +104,8 @@ export default function FinanceDashboard({ currentMonth }: Props) {
               <BarChart data={barData} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `€${v}`} />
-                <Tooltip formatter={(v: any) => `€${Number(v).toFixed(2)}`} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${sym}${v}`} />
+                <Tooltip formatter={(v: any) => `${sym}${Number(v).toFixed(2)}`} />
                 <Bar dataKey="budget" name="Budget" fill="#e5e7eb" radius={[4,4,0,0]} />
                 <Bar dataKey="spent" name="Spent" radius={[4,4,0,0]}>
                   {barData.map((entry, i) => (
@@ -125,7 +127,7 @@ export default function FinanceDashboard({ currentMonth }: Props) {
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: any) => `€${Number(v).toFixed(2)}`} />
+                <Tooltip formatter={(v: any) => `${sym}${Number(v).toFixed(2)}`} />
                 <Legend iconType="circle" iconSize={10} />
               </PieChart>
             </ResponsiveContainer>
@@ -145,7 +147,7 @@ export default function FinanceDashboard({ currentMonth }: Props) {
                   <span className="finance-recent-date">{tx.date}</span>
                 </div>
                 <span className={`finance-recent-amount ${tx.type === "income" ? "positive" : "negative"}`}>
-                  {tx.type === "income" ? "+" : "-"}€{Number(tx.amount).toFixed(2)}
+                  {tx.type === "income" ? "+" : "-"}{sym}{Number(tx.amount).toFixed(2)}
                 </span>
               </div>
             ))}

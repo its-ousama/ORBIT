@@ -141,6 +141,9 @@ const initDb = async () => {
     ALTER TABLE finance_transactions ADD COLUMN IF NOT EXISTS is_goal BOOLEAN DEFAULT false
   `);
   await pool.query(`
+    ALTER TABLE finance_config ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'EUR'
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS finance_recurring (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,

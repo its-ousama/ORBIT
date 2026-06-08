@@ -3,9 +3,12 @@ import { getTransactions, createTransaction, deleteTransaction, getCategories, c
 import type { FinanceTransaction, FinanceCategory } from "../types";
 import "./css/FinanceTransactions.css";
 
-interface Props { currentMonth: string; }
+import { currencySymbol } from "./FinanceSettings";
 
-export default function FinanceTransactions({ currentMonth }: Props) {
+interface Props { currentMonth: string; currency: string; }
+
+export default function FinanceTransactions({ currentMonth, currency }: Props) {
+  const sym = currencySymbol(currency);
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>("all");
@@ -19,6 +22,34 @@ export default function FinanceTransactions({ currentMonth }: Props) {
     note: "",
     is_recurring: false,
   });
+  const [showNumpad, setShowNumpad] = useState(false);
+
+  const handleNumpadKey = (key: string) => {
+    setForm(f => {
+      let val = f.amount;
+      if (key === "⌫") {
+        val = val.slice(0, -1);
+      } else if (key === ".") {
+        if (!val.includes(".")) val = val + ".";
+      } else {
+        if (val === "0") val = key;
+        else if (val.length < 10) val = val + key;
+      }
+      return { ...f, amount: val };
+    });
+  };
+
+  useEffect(() => {
+    if (!showNumpad) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key >= "0" && e.key <= "9") handleNumpadKey(e.key);
+      else if (e.key === "." || e.key === ",") handleNumpadKey(".");
+      else if (e.key === "Backspace") handleNumpadKey("⌫");
+      else if (e.key === "Enter" || e.key === "Escape") setShowNumpad(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [showNumpad]);
 
   useEffect(() => {
     load();
@@ -77,7 +108,7 @@ export default function FinanceTransactions({ currentMonth }: Props) {
     return true;
   });
 
-  const fmt = (n: number) => `€${Number(n).toFixed(2)}`;
+  const fmt = (n: number) => `${sym}${Number(n).toFixed(2)}`;
 
   return (
     <div className="finance-transactions">
@@ -98,15 +129,12 @@ export default function FinanceTransactions({ currentMonth }: Props) {
             <option value="income">Income</option>
           </select>
 
-          <input
-            type="number"
-            placeholder="Amount €"
-            value={form.amount}
-            onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-            className="finance-input"
-            min="0"
-            step="0.01"
-          />
+          <div
+            className={`finance-input finance-amount-display${form.amount ? "" : " placeholder"}`}
+            onClick={() => setShowNumpad(true)}
+          >
+            {form.amount ? `${sym}${form.amount}` : "Amount"}
+          </div>
 
           {form.type === "expense" && (
             <select
@@ -197,6 +225,25 @@ export default function FinanceTransactions({ currentMonth }: Props) {
               </span>
             </div>
           ))}
+        </div>
+      )}
+
+      {showNumpad && (
+        <div className="finance-numpad-overlay" onClick={() => setShowNumpad(false)}>
+          <div className="finance-amount-numpad" onClick={e => e.stopPropagation()}>
+            <div className="finance-amount-numpad-display">
+              {form.amount ? `${sym}${form.amount}` : `${sym}0`}
+            </div>
+            <div className="finance-numpad">
+              {[1,2,3,4,5,6,7,8,9].map(n => (
+                <button key={n} className="finance-numpad-btn" onClick={() => handleNumpadKey(String(n))}>{n}</button>
+              ))}
+              <button className="finance-numpad-btn" onClick={() => handleNumpadKey(".")}>.</button>
+              <button className="finance-numpad-btn" onClick={() => handleNumpadKey("0")}>0</button>
+              <button className="finance-numpad-btn delete" onClick={() => handleNumpadKey("⌫")}>⌫</button>
+            </div>
+            <button className="finance-numpad-done" onClick={() => setShowNumpad(false)}>Done</button>
+          </div>
         </div>
       )}
     </div>

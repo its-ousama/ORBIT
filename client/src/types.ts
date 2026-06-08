@@ -76,6 +76,7 @@ export interface FinanceTransaction {
   date: string;
   note: string;
   is_recurring: boolean;
+  is_goal: boolean;
   recurring_id: number | null;
   created_at: string;
 }

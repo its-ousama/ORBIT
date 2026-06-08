@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { getFinanceStatus, setupFinancePin, verifyFinancePin, getPendingRecurring } from "../financeAPI";
+import { getFinanceStatus, setupFinancePin, verifyFinancePin, getPendingRecurring, getFinanceSettings } from "../financeAPI";
 import FinanceDashboard from "./FinanceDashboard";
 import FinanceTransactions from "./FinanceTransactions";
 import FinanceBudget from "./FinanceBudget";
 import FinanceGoals from "./FinanceGoals";
 import FinanceNotifications from "./FinanceNotifications";
+import FinanceSettings from "./FinanceSettings";
 import BorderBeam from "./BorderBeam";
 import "./css/FinancePage.css";
 
@@ -22,6 +23,8 @@ export default function FinancePage({ initialSection }: Props) {
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [currency, setCurrency] = useState("EUR");
+  const [showSettings, setShowSettings] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -32,7 +35,10 @@ export default function FinancePage({ initialSection }: Props) {
   }, []);
 
   useEffect(() => {
-    if (gate === "unlocked") fetchPendingCount();
+    if (gate === "unlocked") {
+      fetchPendingCount();
+      getFinanceSettings().then(s => setCurrency(s.currency)).catch(() => {});
+    }
   }, [gate, currentMonth]);
 
   const fetchPendingCount = async () => {
@@ -126,9 +132,14 @@ export default function FinancePage({ initialSection }: Props) {
 
   return (
     <div className="finance-layout">
+      <div className="finance-mobile-topbar">
+        <span className="finance-mobile-topbar-title">Finance</span>
+        <button className="finance-settings-btn" onClick={() => setShowSettings(true)} title="Settings">⚙</button>
+      </div>
       <aside className="finance-sidebar">
         <div className="finance-sidebar-header">
           <span className="finance-sidebar-title">Finance</span>
+          <button className="finance-settings-btn" onClick={() => setShowSettings(true)} title="Settings">⚙</button>
         </div>
         <div className="finance-month-nav">
           <button onClick={() => {
@@ -156,11 +167,11 @@ export default function FinancePage({ initialSection }: Props) {
         </nav>
       </aside>
       <div className="finance-main">
-        {section === "dashboard" && <FinanceDashboard currentMonth={currentMonth} />}
-        {section === "transactions" && <FinanceTransactions currentMonth={currentMonth} />}
-        {section === "budget" && <FinanceBudget currentMonth={currentMonth} />}
-        {section === "goals" && <FinanceGoals />}
-        {section === "notifications" && <FinanceNotifications currentMonth={currentMonth} onConfirmed={fetchPendingCount} />}
+        {section === "dashboard" && <FinanceDashboard currentMonth={currentMonth} currency={currency} />}
+        {section === "transactions" && <FinanceTransactions currentMonth={currentMonth} currency={currency} />}
+        {section === "budget" && <FinanceBudget currentMonth={currentMonth} currency={currency} />}
+        {section === "goals" && <FinanceGoals currency={currency} />}
+        {section === "notifications" && <FinanceNotifications currentMonth={currentMonth} onConfirmed={fetchPendingCount} currency={currency} />}
       </div>
       <nav className="finance-bottom-nav">
         {navItems.map(item => (
@@ -177,6 +188,14 @@ export default function FinancePage({ initialSection }: Props) {
           </button>
         ))}
       </nav>
+
+      {showSettings && (
+        <FinanceSettings
+          currency={currency}
+          onClose={() => setShowSettings(false)}
+          onCurrencyChange={setCurrency}
+        />
+      )}
     </div>
   );
 }

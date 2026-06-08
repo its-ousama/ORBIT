@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import http from "../../http";
 import { updateProgress } from "../../booksAPI";
 import "./EpubReader.css";
@@ -33,6 +33,42 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [showUI, setShowUI] = useState(true);
+  const autoHideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearAutoHide = useCallback(() => {
+    if (autoHideRef.current) clearTimeout(autoHideRef.current);
+  }, []);
+
+  const startAutoHide = useCallback(() => {
+    clearAutoHide();
+    autoHideRef.current = setTimeout(() => setShowUI(false), 3000);
+  }, [clearAutoHide]);
+
+  // Start auto-hide once the book finishes loading
+  useEffect(() => {
+    if (!loading) startAutoHide();
+    return clearAutoHide;
+  }, [loading, startAutoHide, clearAutoHide]);
+
+  // Mouse movement on desktop: show UI and reset the hide timer
+  useEffect(() => {
+    const onMouseMove = () => { setShowUI(true); startAutoHide(); };
+    window.addEventListener("mousemove", onMouseMove);
+    return () => window.removeEventListener("mousemove", onMouseMove);
+  }, [startAutoHide]);
+
+  const handleCenterTap = useCallback(() => {
+    if (!showUI) {
+      setShowUI(true);
+      startAutoHide();
+    } else {
+      clearAutoHide();
+      setShowUI(false);
+      setShowToc(false);
+    }
+  }, [showUI, startAutoHide, clearAutoHide]);
+
   useEffect(() => {
     let destroyed = false;
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -43,7 +79,6 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
         const res = await http.get(`/books/${bookId}/file`, { responseType: "arraybuffer" });
         if (destroyed) return;
 
-        // Dynamic import so epubjs (browser-only) doesn't affect SSR / Vite chunking at module parse time
         const Epub = (await import("epubjs")).default;
         const book = Epub(res.data as ArrayBuffer);
         bookRef.current = book;
@@ -77,24 +112,17 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
           "a, a:visited": { color: "#818cf8 !important" },
         });
         rendition.themes.select("light");
-        // Use saved font size so preference is applied immediately on load
         rendition.themes.fontSize(FONT_SIZES[fontSize]);
 
-        // Guard: don't save progress during initial display — epubjs snaps CFI to page
-        // start which differs slightly from the stored CFI, causing drift each session.
-        // Also debounce saves so rapid page turns don't send out-of-order HTTP requests.
         let initialDisplayDone = false;
 
         rendition.on("relocated", (location: any) => {
           const cfi = location?.start?.cfi ?? "";
-          // percentageFromCfi is accurate once locations are generated; fall back to epubjs value
           const raw = book.locations?.percentageFromCfi
             ? (book.locations.percentageFromCfi(cfi) ?? location?.start?.percentage ?? 0)
             : (location?.start?.percentage ?? 0);
           const pct = Math.min(100, Math.floor(raw * 100));
           setPercent(pct);
-          // Don't call onProgress during initial display — epubjs returns 0 before locations
-          // are generated, which would overwrite the real server-stored percentage in the card
           if (initialDisplayDone) {
             onProgress(cfi, pct);
             if (cfi) {
@@ -114,8 +142,6 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
         }
         initialDisplayDone = true;
 
-        // Generate locations in background so percentage works on page turns
-        // 1024 = chars per "location" — standard epubjs default
         book.locations.generate(1024).catch(() => {});
 
         const nav = await book.loaded.navigation;
@@ -133,7 +159,6 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
 
     return () => {
       destroyed = true;
-      // Flush any pending debounced save immediately so the last position isn't lost on close
       if (saveTimer) {
         clearTimeout(saveTimer);
         if (lastProgress) updateProgress(bookId, lastProgress.cfi, lastProgress.pct).catch(() => {});
@@ -145,7 +170,6 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
     };
   }, [bookId]);
 
-  // Apply theme / font size changes after load
   useEffect(() => {
     renditionRef.current?.themes.select(darkMode ? "dark" : "light");
   }, [darkMode]);
@@ -154,7 +178,6 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
     renditionRef.current?.themes.fontSize(FONT_SIZES[fontSize]);
   }, [fontSize]);
 
-  // Keyboard nav
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "PageDown") renditionRef.current?.next();
@@ -170,10 +193,12 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
     setShowToc(false);
   };
 
+  const uiHidden = !showUI;
+
   return (
     <div className={`epub-reader ${darkMode ? "epub-dark" : "epub-light"}`}>
       {/* Top bar */}
-      <div className="epub-topbar">
+      <div className={`epub-topbar${uiHidden ? " epub-ui-hidden" : ""}`}>
         <button className="epub-topbar-btn" onClick={onClose}>← Back</button>
 
         <div className="epub-topbar-controls">
@@ -226,13 +251,18 @@ export default function EpubReader({ bookId, initialLocation, onProgress, onClos
           {loading && <div className="epub-loading">Loading book…</div>}
           {error && <div className="epub-error">{error}</div>}
           <div ref={viewerRef} className="epub-viewer" />
+          <div className="epub-tap-overlay">
+            <div className="epub-tap-prev" onClick={() => renditionRef.current?.prev()} />
+            <div className="epub-tap-center" onClick={handleCenterTap} />
+            <div className="epub-tap-next" onClick={() => renditionRef.current?.next()} />
+          </div>
         </div>
 
         <button className="epub-nav-btn epub-nav-next" onClick={() => renditionRef.current?.next()}>›</button>
       </div>
 
       {/* Progress bar */}
-      <div className="epub-footer">
+      <div className={`epub-footer${uiHidden ? " epub-ui-hidden" : ""}`}>
         <div className="epub-progress-track">
           <div className="epub-progress-fill" style={{ width: `${percent}%` }} />
         </div>
