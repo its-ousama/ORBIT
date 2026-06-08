@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getGoals, createGoal, updateGoal, deleteGoal, contributeToGoal, createTransaction } from "../financeAPI";
 import type { FinanceGoal } from "../types";
 import Confetti from "./Confetti";
+import { currencySymbol } from "./FinanceSettings";
 import "./css/FinanceGoals.css";
 
 const PRESET_COLORS = ["#6366f1","#ec4899","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ef4444","#14b8a6"];
@@ -9,7 +10,8 @@ const PRESET_ICONS = ["🎯","✈️","🏠","🚗","💻","👟","📚","🎸",
 
 type ContributeMode = "add" | "withdraw";
 
-export default function FinanceGoals() {
+export default function FinanceGoals({ currency }: { currency: string }) {
+  const sym = currencySymbol(currency);
   const [goals, setGoals] = useState<FinanceGoal[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -57,7 +59,7 @@ export default function FinanceGoals() {
       type: isWithdrawal ? "income" : "expense",
       category_id: null,
       date: new Date().toISOString().slice(0, 10),
-      note: isWithdrawal ? `Withdrew €${effectiveAmt.toFixed(2)} from ${goal.name}` : `Added €${effectiveAmt.toFixed(2)} to ${goal.name}`,
+      note: isWithdrawal ? `Withdrew ${sym}${effectiveAmt.toFixed(2)} from ${goal.name}` : `Added ${sym}${effectiveAmt.toFixed(2)} to ${goal.name}`,
       is_recurring: false,
       is_goal: true,
     });
@@ -72,7 +74,7 @@ export default function FinanceGoals() {
     setGoals(prev => prev.filter(g => g.id !== id));
   };
 
-  const fmt = (n: number) => `€${Number(n).toFixed(2)}`;
+  const fmt = (n: number) => `${sym}${Number(n).toFixed(2)}`;
   const daysLeft = (deadline: string | null) => {
     if (!deadline) return null;
     return Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
@@ -92,7 +94,7 @@ export default function FinanceGoals() {
           <h3>{editingId ? "Edit Goal" : "New Goal"}</h3>
           <div className="finance-goal-form-row">
             <div><label>Goal Name</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Summer trip" className="finance-input" /></div>
-            <div><label>Target Amount (€)</label><input type="number" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} placeholder="0" className="finance-input" min="0" step="0.01" /></div>
+            <div><label>Target Amount ({sym})</label><input type="number" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} placeholder="0" className="finance-input" min="0" step="0.01" /></div>
             <div><label>Deadline (optional)</label><input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} className="finance-input" /></div>
           </div>
           <div><label>Icon</label>
@@ -149,7 +151,7 @@ export default function FinanceGoals() {
                 </div>
                 {isContributing && (
                   <div className="finance-contribute-input-wrap">
-                    <input type="number" placeholder="Amount €" value={contributeAmt} onChange={e => setContributeAmt(e.target.value)} className="finance-input finance-contribute-input" autoFocus min="0" step="0.01" onKeyDown={e => e.key === "Enter" && handleContribute(goal)} />
+                    <input type="number" placeholder={`Amount ${sym}`} value={contributeAmt} onChange={e => setContributeAmt(e.target.value)} className="finance-input finance-contribute-input" autoFocus min="0" step="0.01" onKeyDown={e => e.key === "Enter" && handleContribute(goal)} />
                     <button className="finance-contribute-confirm-btn" style={{ background: contributeMode === "add" ? goal.color : "#ef4444" }} onClick={() => handleContribute(goal)}>
                       {contributeMode === "add" ? "Confirm Add" : "Confirm Withdraw"}
                     </button>

@@ -4,11 +4,25 @@ import {
   getCategorySpending, getGoals, getMonthlySummary, getTransactions
 } from "../financeAPI";
 
+import { currencySymbol } from "./FinanceSettings";
+import FinanceMonthlyReport from "./FinanceMonthlyReport";
 import "./css/FinanceNotifications.css";
+
+function todayMonth(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function prevMonthOf(m: string): string {
+  const [y, mo] = m.split("-").map(Number);
+  const d = new Date(y, mo - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 interface Props {
   currentMonth: string;
   onConfirmed: () => void;
+  currency: string;
 }
 
 type NotifType = "recurring" | "over_budget" | "near_budget" | "goal_milestone" | "month_summary" | "no_income";
@@ -25,10 +39,16 @@ interface Notification {
   skipAction?: () => void;
 }
 
-export default function FinanceNotifications({ currentMonth, onConfirmed }: Props) {
+export default function FinanceNotifications({ currentMonth, onConfirmed, currency }: Props) {
+  const sym = currencySymbol(currency);
+  const [view, setView] = useState<"alerts" | "report">("alerts");
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
+
+  // Show red dot on report tab when viewing current month (prev month just closed)
+  const now = todayMonth();
+  const reportMonth = currentMonth < now ? currentMonth : prevMonthOf(now);
 
   useEffect(() => { load(); }, [currentMonth]);
 
@@ -51,7 +71,7 @@ export default function FinanceNotifications({ currentMonth, onConfirmed }: Prop
         type: "recurring",
         icon: r.category_icon || "🔁",
         title: `Recurring: ${r.title}`,
-        body: `${r.category_name || "No category"} · Due on the ${r.day_of_month}${ordinal(r.day_of_month)} · ${r.type === "income" ? "+" : "-"}€${Number(r.amount).toFixed(2)}`,
+        body: `${r.category_name || "No category"} · Due on the ${r.day_of_month}${ordinal(r.day_of_month)} · ${r.type === "income" ? "+" : "-"}${sym}${Number(r.amount).toFixed(2)}`,
         color: r.category_color || "#6366f1",
         action: async () => {
           setConfirming(`recurring-${r.id}`);
@@ -85,7 +105,7 @@ export default function FinanceNotifications({ currentMonth, onConfirmed }: Prop
           type: "over_budget",
           icon: cat.icon,
           title: `Over budget: ${cat.name}`,
-          body: `You've exceeded your ${cat.name} budget by €${over.toFixed(2)} (spent €${spent.toFixed(2)} of €${budget.toFixed(2)})`,
+          body: `You've exceeded your ${cat.name} budget by ${sym}${over.toFixed(2)} (spent ${sym}${spent.toFixed(2)} of ${sym}${budget.toFixed(2)})`,
           color: "#ef4444",
         });
       }
@@ -102,7 +122,7 @@ export default function FinanceNotifications({ currentMonth, onConfirmed }: Prop
           type: "near_budget",
           icon: cat.icon,
           title: `Approaching limit: ${cat.name}`,
-          body: `You've used ${pct.toFixed(0)}% of your ${cat.name} budget — €${(budget - spent).toFixed(2)} remaining`,
+          body: `You've used ${pct.toFixed(0)}% of your ${cat.name} budget — ${sym}${(budget - spent).toFixed(2)} remaining`,
           color: "#f59e0b",
         });
       }
@@ -119,7 +139,7 @@ export default function FinanceNotifications({ currentMonth, onConfirmed }: Prop
           type: "goal_milestone",
           icon: goal.icon,
           title: `Goal achieved: ${goal.name}! 🎉`,
-          body: `You've reached your target of €${Number(goal.target_amount).toFixed(2)}. Congratulations!`,
+          body: `You've reached your target of ${sym}${Number(goal.target_amount).toFixed(2)}. Congratulations!`,
           color: "#10b981",
         });
       } else if (pct >= 75) {
@@ -128,7 +148,7 @@ export default function FinanceNotifications({ currentMonth, onConfirmed }: Prop
           type: "goal_milestone",
           icon: goal.icon,
           title: `75% there: ${goal.name}`,
-          body: `€${Number(goal.current_amount).toFixed(2)} saved of €${Number(goal.target_amount).toFixed(2)} — almost there!`,
+          body: `${sym}${Number(goal.current_amount).toFixed(2)} saved of ${sym}${Number(goal.target_amount).toFixed(2)} — almost there!`,
           color: goal.color,
         });
       } else if (pct >= 50) {
@@ -137,7 +157,7 @@ export default function FinanceNotifications({ currentMonth, onConfirmed }: Prop
           type: "goal_milestone",
           icon: goal.icon,
           title: `Halfway: ${goal.name}`,
-          body: `€${Number(goal.current_amount).toFixed(2)} saved of €${Number(goal.target_amount).toFixed(2)} — keep going!`,
+          body: `${sym}${Number(goal.current_amount).toFixed(2)} saved of ${sym}${Number(goal.target_amount).toFixed(2)} — keep going!`,
           color: goal.color,
         });
       }
@@ -169,7 +189,7 @@ export default function FinanceNotifications({ currentMonth, onConfirmed }: Prop
         type: "month_summary",
         icon: "📅",
         title: `${monthLabel(currentMonth)} summary`,
-        body: `Income: €${income.toFixed(2)} · Spent: €${expenses.toFixed(2)} · Closed with €${balance.toFixed(2)} balance`,
+        body: `Income: ${sym}${income.toFixed(2)} · Spent: ${sym}${expenses.toFixed(2)} · Closed with ${sym}${balance.toFixed(2)} balance`,
         color: balance >= 0 ? "#10b981" : "#ef4444",
       });
     }
@@ -182,9 +202,34 @@ export default function FinanceNotifications({ currentMonth, onConfirmed }: Prop
 
   const recurringNotifs = notifications.filter(n => n.type === "recurring");
   const alertNotifs = notifications.filter(n => n.type !== "recurring");
+  const newReportDot = currentMonth === now; // dot when browsing current month (prev just closed)
 
   return (
     <div className="finance-notif-page">
+      {/* Tab toggle */}
+      <div className="finance-notif-tabs">
+        <button
+          className={`finance-notif-tab ${view === "alerts" ? "active" : ""}`}
+          onClick={() => setView("alerts")}
+        >
+          Alerts
+          {notifications.length > 0 && <span className="finance-notif-tab-badge">{notifications.length}</span>}
+        </button>
+        <button
+          className={`finance-notif-tab ${view === "report" ? "active" : ""}`}
+          onClick={() => setView("report")}
+        >
+          Monthly Report
+          {newReportDot && view !== "report" && <span className="finance-notif-tab-dot" />}
+        </button>
+      </div>
+
+      {view === "report" && (
+        <FinanceMonthlyReport initialMonth={reportMonth} currency={currency} />
+      )}
+
+      {view === "alerts" && (
+        <>
       <div className="finance-notif-header">
         <h2>Notifications</h2>
         <span className="finance-notif-total">
@@ -218,6 +263,8 @@ export default function FinanceNotifications({ currentMonth, onConfirmed }: Prop
             <NotifCard key={n.id} notif={n} confirming={confirming} />
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );

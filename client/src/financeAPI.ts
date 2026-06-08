@@ -14,6 +14,15 @@ export const setupFinancePin = (pin: string) =>
 export const verifyFinancePin = (pin: string) =>
   http.post<{ success: boolean }>("/finance/config/verify", { pin }).then(r => r.data);
 
+export const getFinanceSettings = () =>
+  http.get<{ currency: string }>("/finance/config/settings").then(r => r.data);
+
+export const updateFinanceCurrency = (currency: string) =>
+  http.put("/finance/config/currency", { currency }).then(r => r.data);
+
+export const changeFinancePin = (currentPin: string, newPin: string) =>
+  http.put<{ success: boolean }>("/finance/config/pin", { currentPin, newPin }).then(r => r.data);
+
 // Categories
 export const getCategories = () =>
   http.get<FinanceCategory[]>("/finance/categories").then(r => r.data);
