@@ -169,14 +169,14 @@ export default function App() {
 
   return (
     <div className="app-fullscreen" key={page}>
-      <HomeButton onHome={goHome} />
+      {page !== "finance" && <HomeButton onHome={goHome} />}
       {page === "tasks" && <TasksPage selectedDate={selectedDate} onDateChange={setSelectedDate} />}
       {page === "calendar" && <CalendarPage onGoToDay={goToDay} />}
       {page === "documentation" && <DocumentationPage onGoHome={goHome} />}
       {page === "boards" && <BoardsPage onGoHome={goHome} />}
       {page === "week" && <WeekPage onGoHome={goHome} />}
       {page === "journal" && <JournalPage />}
-      {page === "finance" && <FinancePage initialSection={financeSection} />}
+      {page === "finance" && <FinancePage initialSection={financeSection} onGoHome={goHome} />}
       {page === "notifications" && <NotificationsPage onNavigate={handleNotifNavigate} />}
       {page === "books" && <BooksPage />}
     </div>
