@@ -14,9 +14,17 @@ type GateState = "loading" | "setup" | "locked" | "unlocked";
 
 interface Props {
   initialSection?: string;
+  onGoHome?: () => void;
 }
 
-export default function FinancePage({ initialSection }: Props) {
+const HomeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M2 6.5L8 2l6 4.5V14a.5.5 0 01-.5.5h-4V10h-3v4.5h-4A.5.5 0 012 14V6.5z"
+      stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+  </svg>
+);
+
+export default function FinancePage({ initialSection, onGoHome }: Props) {
   const [gate, setGate] = useState<GateState>("loading");
   const [section, setSection] = useState<FinanceSection>((initialSection as FinanceSection) || "dashboard");
   const [pin, setPin] = useState("");
@@ -133,12 +141,25 @@ export default function FinancePage({ initialSection }: Props) {
   return (
     <div className="finance-layout">
       <div className="finance-mobile-topbar">
-        <span className="finance-mobile-topbar-title">Finance</span>
+        <button className="finance-home-btn" onClick={onGoHome} title="Back to Home"><HomeIcon /></button>
+        <div className="finance-mobile-month-nav">
+          <button onClick={() => {
+            const [y, m] = currentMonth.split("-").map(Number);
+            const d = new Date(y, m - 2, 1);
+            setCurrentMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+          }}>‹</button>
+          <span>{monthLabel()}</span>
+          <button onClick={() => {
+            const [y, m] = currentMonth.split("-").map(Number);
+            const d = new Date(y, m, 1);
+            setCurrentMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+          }}>›</button>
+        </div>
         <button className="finance-settings-btn" onClick={() => setShowSettings(true)} title="Settings">⚙</button>
       </div>
       <aside className="finance-sidebar">
         <div className="finance-sidebar-header">
-          <span className="finance-sidebar-title">Finance</span>
+          <button className="finance-home-btn" onClick={onGoHome} title="Back to Home"><HomeIcon /></button>
           <button className="finance-settings-btn" onClick={() => setShowSettings(true)} title="Settings">⚙</button>
         </div>
         <div className="finance-month-nav">

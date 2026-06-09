@@ -16,6 +16,7 @@ export default function FinanceBudget({ currentMonth, currency }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", icon: "💰", color: "#6366f1", monthly_budget: "" });
+  const [showEmojiInput, setShowEmojiInput] = useState(false);
 
   useEffect(() => { loadSpending(); loadRecurring(); }, [currentMonth]);
 
@@ -106,8 +107,28 @@ export default function FinanceBudget({ currentMonth, currency }: Props) {
             <label>Icon</label>
             <div className="finance-icon-picker">
               {PRESET_ICONS.map(icon => (
-                <button key={icon} className={`finance-icon-btn ${form.icon === icon ? "selected" : ""}`} onClick={() => setForm(f => ({ ...f, icon }))}>{icon}</button>
+                <button key={icon} className={`finance-icon-btn ${form.icon === icon ? "selected" : ""}`}
+                  onClick={() => { setForm(f => ({ ...f, icon })); setShowEmojiInput(false); }}>{icon}</button>
               ))}
+              {!PRESET_ICONS.includes(form.icon) && (
+                <button className="finance-icon-btn selected" onClick={() => setShowEmojiInput(true)}>{form.icon}</button>
+              )}
+              {showEmojiInput ? (
+                <input
+                  className="finance-icon-emoji-input"
+                  placeholder="✦"
+                  autoComplete="off"
+                  onChange={e => {
+                    const chars = [...e.target.value];
+                    const emoji = chars[chars.length - 1];
+                    if (emoji) { setForm(f => ({ ...f, icon: emoji })); setShowEmojiInput(false); }
+                  }}
+                  onBlur={() => setShowEmojiInput(false)}
+                  onKeyDown={e => { if (e.key === "Escape") setShowEmojiInput(false); }}
+                />
+              ) : (
+                <button className="finance-icon-btn finance-icon-add-btn" onClick={() => setShowEmojiInput(true)} title="Add custom emoji">+</button>
+              )}
             </div>
           </div>
           <div>
@@ -117,7 +138,13 @@ export default function FinanceBudget({ currentMonth, currency }: Props) {
                 <button key={color} className={`finance-color-swatch ${form.color === color ? "selected" : ""}`}
                   style={{ background: color }} onClick={() => setForm(f => ({ ...f, color }))} />
               ))}
-              <input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className="finance-color-custom" />
+              <input
+                type="color"
+                value={form.color}
+                onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
+                onInput={e => setForm(f => ({ ...f, color: (e.target as HTMLInputElement).value }))}
+                className={`finance-color-custom ${!PRESET_COLORS.includes(form.color) ? "active" : ""}`}
+              />
             </div>
           </div>
           <div className="finance-cat-form-actions">
