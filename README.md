@@ -2,11 +2,11 @@
 
 > *Your personal OS for the internet. Everything revolves around you.*
 
+https://orbit.epita.online/
+
 ---
 
 ## What is this?
-
-It started as an internship planner. It became something way more interesting.
 
 **Orbit** is a personal home base that replaces your generic browser homepage with something that actually *knows you* — your tasks, your schedule, your notes, your money, your ideas. Instead of opening a new tab and staring at a search bar, you open this, and everything you need is already there.
 
@@ -21,11 +21,12 @@ Think of it as a second brain meets a mission control center. One place, everyth
 | 📋 **Tasks** | Your to-do list, organized by day |
 | 📅 **This Week** | A weekly schedule so nothing slips through |
 | 🗓 **Calendar** | Bird's-eye view of your whole month |
+| 📖 **Journal** | A private diary with its own lock (password + security question) and a theme you can customize per entry |
 | 🧠 **Knowledge** | A personal wiki — notes, docs, anything you want to remember |
 | 🎨 **Boards** | Freeform drawing boards for thinking on paper |
-| 💰 **Finance** | Track income, spending, budgets and saving goals |
+| 💰 **Finance** | Track income, spending, budgets and saving goals — locked behind its own PIN, no snooping |
+| 📚 **Library** | Keep tabs on what you're reading, want to read, and have finished |
 | 🔔 **Notifications** | Smart alerts — overdue tasks, budget warnings, upcoming deadlines |
-| ⚙️ **Settings** | Your space, your rules |
 
 ---
 
@@ -43,15 +44,12 @@ Most productivity tools are built for companies. They're full of features you'll
 
 Orbit is built for one person. It knows your week, your budget, your projects, your knowledge base. It's not a SaaS product. It's not trying to scale. It's just yours.
 
-> *"Instead of opening a browser and going to google.com, you open this — and everything you need is already there."*
-
 ---
 
 ## Status
 
-✅ Live — running on a private server, accessible from anywhere via a secure tunnel  
+✅ Live — running on a private server, accessible from anywhere via a secure tunnel (https://orbit.epita.online/)
 ✅ Mobile-friendly — works on any screen size  
-✅ Automatic deploys — push to `main`, new version ships itself  
 
 ---
 
