@@ -53,4 +53,3 @@ Orbit is built for one person. It knows your week, your budget, your projects, y
 
 ---
 
-*Built during an internship at SNCF. Became a whole thing.*
