@@ -25,3 +25,7 @@ dist-ssr
 .env
 *.env
 *.txt
+
+# Personal financial data — never commit
+excel/
+*.xlsx
